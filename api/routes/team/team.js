@@ -21,7 +21,8 @@ router.get("/my-team/:id", async (req, res) => {
     })
       .populate({
         path: "teamLeader.id",
-        select: "userName designation employeeId firstName lastName email personalInformation.telephones",
+        select:
+          "userName designation employeeId firstName lastName email personalInformation.telephones",
       })
       .populate({
         path: "teamLeader.image",
@@ -29,7 +30,8 @@ router.get("/my-team/:id", async (req, res) => {
       })
       .populate({
         path: "teamMember.id",
-        select: "userName designation employeeId firstName lastName email personalInformation.telephones",
+        select:
+          "userName designation employeeId firstName lastName email personalInformation.telephones",
       })
       .populate({
         path: "teamMember.image",
@@ -78,7 +80,7 @@ router.put("/update-team", async (req, res) => {
       { $set: updatedFields },
       { new: true, upsert: true }
     );
-    res.status(200).send("Team detail updated successfully!");
+    res.status(200).send({ message: "Leave updated successfully!" });
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
