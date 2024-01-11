@@ -8,10 +8,8 @@ router.post("/add-client", async (req, res) => {
     const {
       userName,
       mail,
-      dueDate,
       organization,
       status,
-      money,
       address,
       aboutUs,
       company,
@@ -27,10 +25,8 @@ router.post("/add-client", async (req, res) => {
     const newClient = new Client({
       userName,
       mail,
-      dueDate,
       organization,
       status,
-      money,
       address,
       aboutUs,
       company,

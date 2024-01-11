@@ -17,20 +17,12 @@ const clientSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  dueDate: {
-    type: Date,
-    default: Date.now,
-  },
   organization: {
     type: String,
     required: true,
   },
   status: {
     type: String,
-    required: true,
-  },
-  money: {
-    type: Number,
     required: true,
   },
   address: {
