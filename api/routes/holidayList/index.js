@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Holiday = require("../../../models/holidayList");
+const Image = require("../../../models/image");
 
 router.post("/list", async (req, res) => {
   try {
@@ -23,20 +24,23 @@ router.post("/list", async (req, res) => {
 router.get("/get-list/:year", async (req, res) => {
   try {
     const selectedYear = req.params.year;
+    const image = await Image.find({});
     const currentYear = selectedYear
       ? parseInt(selectedYear, 10)
       : new Date().getFullYear();
     const holidays = await Holiday.find().sort({ year: 1, startDate: 1 });
     const holidaysByYear = [];
-
     holidays.forEach((holiday) => {
-      const { year, holidayName, startDate, endDate, description } = holiday;
+      const { year, holidayName, startDate, endDate, description, _id } =
+        holiday;
+      const img = image.find((elm) => elm.user_Id.equals(_id));
       if (currentYear === year) {
         holidaysByYear.push({
           holidayName,
           startDate,
           endDate,
           description,
+          image: img.path,
         });
       }
     });
