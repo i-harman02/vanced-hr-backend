@@ -109,7 +109,7 @@ router.get("/balance/:id", async (req, res) => {
       const leaveDay = new Date(leave.startDate);
       return leaveDay <= currentDate && leave.status === "Pending";
     });
-    const totalLeave = 20;
+    const totalLeave = 12;
     const paidLeave = approvedLeaves ? approvedLeaves?.length : 0;
     const unPaidLeave = pendingLeaves ? pendingLeaves?.length : 0;
     const remainingLeave = totalLeave - paidLeave;
