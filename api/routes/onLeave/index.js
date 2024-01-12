@@ -3,6 +3,7 @@ const router = express.Router();
 const Leaves = require("../../../models/onLeaveToday");
 const LeaveBalance = require("../../../models/leaveBalances");
 const Image = require("../../../models/image");
+const Employee = require("../../../models/employee");
 
 router.post("/apply-leave", async (req, res) => {
   try {
@@ -394,6 +395,52 @@ router.put("/update-leave", async (req, res) => {
       { new: true, upsert: true }
     );
     res.status(200).send({ message: "Leave detail updated successfully!" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+});
+
+router.get("/today-stats", async (req, res) => {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const employee = await Employee.find({});
+    const leaves = await Leaves.find({
+      $or: [
+        {
+          startDate: {
+            $gte: new Date(today),
+            $lt: new Date(today + "T23:59:59.999Z"),
+          },
+        },
+        {
+          endDate: {
+            $gte: new Date(today),
+            $lt: new Date(today + "T23:59:59.999Z"),
+          },
+        },
+        {
+          $and: [
+            { startDate: { $lte: new Date(today) } },
+            { endDate: { $gte: new Date(today + "T23:59:59.999Z") } },
+          ],
+        },
+      ],
+    });
+    const approvedLeaves = leaves.filter((val) => val.status === "Approved");
+    const pendingLeaves = leaves.filter((val) => val.status === "Pending");
+    const totalEmployee = employee.length;
+    const totalPresent = totalEmployee - approvedLeaves.length;
+    const unplannedLeaves = 0;
+    console.log(approvedLeaves.length);
+    const todayLeaveStates = {
+      approvedLeaves: approvedLeaves.length,
+      pendingLeaves: pendingLeaves.length,
+      totalEmployee,
+      totalPresent,
+      unplannedLeaves,
+    };
+    res.status(200).json(todayLeaveStates);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });
