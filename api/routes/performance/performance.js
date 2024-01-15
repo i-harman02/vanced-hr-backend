@@ -29,14 +29,38 @@ router.post("/add-performance", async (req, res) => {
 
 router.get("/all-performance", async (req, res) => {
   try {
-    const userId = req.body.id;
-    let query = {};
+    const feedback = await Performance.find({})
+      .populate({
+        path: "employee",
+        select: "userName designation employeeId firstName lastName",
+      })
+      .populate({
+        path: "employeeImage",
+        select: "path",
+      })
+      .populate({
+        path: "addedBy",
+        select: "userName designation employeeId firstName lastName",
+      })
+      .populate({
+        path: "addedByImage",
+        select: "path",
+      })
+      .populate({
+        path: "projectName",
+        select: "projectName",
+      });
+    res.status(200).json(feedback);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+});
 
-    if (userId) {
-      // If userId is provided, fetch data for that specific user
-      query = { employee: userId };
-    }
-    const feedback = await Performance.find(query)
+router.get("/employee-performance/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const feedback = await Performance.find({ employee: id })
       .populate({
         path: "employee",
         select: "userName designation employeeId firstName lastName",
