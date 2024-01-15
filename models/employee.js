@@ -53,6 +53,9 @@ const employeeSchema = new mongoose.Schema({
     maritalStatus: {
       type: String,
     },
+    bloodGroup: {
+      type: String,
+    },
   },
   emergencyContact: {
     primary: {
@@ -93,6 +96,9 @@ const employeeSchema = new mongoose.Schema({
       type: String,
     },
     panNo: {
+      type: String,
+    },
+    aadharCardNo: {
       type: String,
     },
   },

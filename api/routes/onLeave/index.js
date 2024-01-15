@@ -305,6 +305,14 @@ router.get("/requested/:id", async (req, res) => {
       .populate({
         path: "approvedBy.employer",
         select: "userName designation employeeId firstName lastName",
+      })
+      .populate({
+        path: "approvedBy.employerImage",
+        select: "path",
+      })
+      .populate({
+        path: "image",
+        select: "path",
       });
     res.status(200).json(leaveData);
   } catch (error) {
