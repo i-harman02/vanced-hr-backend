@@ -9,7 +9,7 @@ const util = require('util');
 const readFile = util.promisify(fs.readFile);
 const options = {
   access: 'public',
-  token: process.env.BLOB_READ_WRITE_TOKEN, // Replace with your actual Vercel Blob authentication token
+  token: 'vercel_blob_rw_9QbdfSoqetuiJMDC_OHYTvZ9VfO5UZ0qaFSj5lNs9Nr77q1', // Replace with your actual Vercel Blob authentication token
 };
 
 const storage = multer.diskStorage({
