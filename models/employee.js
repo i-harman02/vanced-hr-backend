@@ -16,7 +16,7 @@ const employeeSchema = new mongoose.Schema({
     type: String,
   },
   birthday: {
-    type: String,
+    type: Date,
   },
   designation: {
     type: String,
