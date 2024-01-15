@@ -4,12 +4,14 @@ const fs = require("fs");
 const router = express.Router();
 const Image = require("../../../models/image");
 const removeImage = require("../../helpers/deleteImage/deleteImage");
+
 const { put } = require("@vercel/blob");
 const util = require('util');
 const readFile = util.promisify(fs.readFile);
+
 const options = {
   access: 'public',
-  token: 'vercel_blob_rw_9QbdfSoqetuiJMDC_OHYTvZ9VfO5UZ0qaFSj5lNs9Nr77q1', // Replace with your actual Vercel Blob authentication token
+  token: process.env.BLOB_READ_WRITE_TOKEN, // Replace with your actual Vercel Blob authentication token
 };
 
 const storage = multer.diskStorage({
