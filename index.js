@@ -35,20 +35,26 @@ const options = {
 
 
 
-  app.post('/api/testing', upload.single('image'), async  (req, res) => {
+app.post('/api/testing', upload.single('image'), async (req, res) => {
+  try {
+    // Check if req.file is populated
+    if (!req.file) {
+      throw new Error('No file received');
+    }
+
     // Now, req.file should contain the uploaded file information
     const { originalname, buffer } = req.file;
+
     // Process and handle the file here
-
-
-    // const { originalname, path } = req.file;
-    // const buffer = await readFile(path);
     const { url } = await put(`home/${originalname}`, buffer, options);
     console.log('Upload successful:', url);
-    res.send("Working 0.2")
 
-
-  });
+    res.send("Working 0.2");
+  } catch (error) {
+    console.error('Error during file upload:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
 
 
 
