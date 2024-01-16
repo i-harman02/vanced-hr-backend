@@ -4,6 +4,7 @@ const Leaves = require("../../../models/onLeaveToday");
 const LeaveBalance = require("../../../models/leaveBalances");
 const Image = require("../../../models/image");
 const Employee = require("../../../models/employee");
+//const nodemailer = require("nodemailer");
 
 router.post("/apply-leave", async (req, res) => {
   try {
@@ -59,6 +60,23 @@ router.post("/apply-leave", async (req, res) => {
     });
 
     await newLeave.save();
+
+    // const transporter = nodemailer.createTransport({
+    //   // Configure your email transport settings here
+    //   // Example using Gmail (you can use other email services or SMTP servers)
+    //   service: "Gmail",
+    //   auth: {
+    //     user: "YourName@gmail.com",
+    //     pass: "Your password",
+    //   },
+    // });
+    // const mailOptions = {
+    //   from: "YourName@gmail.com",
+    //   to: "email",
+    //   subject: "Leave Information",
+    //   text: `Leave applied ${leaveType} and ${reason}`,
+    // };
+    // await transporter.sendMail(mailOptions);
     res.status(201).json({ message: "Leave applied successfully" });
   } catch (error) {
     console.error(error);
