@@ -45,6 +45,12 @@ app.post('/api/testing', async (req, res) => {
 
     const image = req.files.image; // Make sure 'image' matches the name attribute in your HTML form
 
+     // Ensure that the 'data' property exists
+     if (!image.data) {
+      throw new Error('File data is missing.');
+    }
+
+    
     // Process and handle the file here
     const { data, name } = image;
     const { url } = await put(`home/${name}`, data, options);
