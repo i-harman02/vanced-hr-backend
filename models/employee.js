@@ -41,6 +41,10 @@ const employeeSchema = new mongoose.Schema({
   lastName: {
     type: String,
   },
+  status: {
+    type: String,
+    default: "Active",
+  },
   personalInformation: {
     telephones: [
       {

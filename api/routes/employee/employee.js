@@ -16,6 +16,7 @@ router.post("/add-employee", async (req, res) => {
   try {
     const {
       userName,
+      status,
       password,
       role,
       email,
@@ -47,6 +48,7 @@ router.post("/add-employee", async (req, res) => {
     const newUser = new Employee({
       userName,
       password: hashedPassword,
+      status,
       role,
       email,
       birthday,
@@ -90,6 +92,21 @@ router.put("/update-employee", async (req, res) => {
       ? { ...req.body, password: hashedPassword }
       : req.body;
 
+    await Employee.findByIdAndUpdate(
+      { _id: req.body.id },
+      { $set: updatedFields },
+      { new: true, upsert: true }
+    );
+    res.status(200).json({ message: "Employee detail updated successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+});
+
+router.put("/employee-status", async (req, res) => {
+  try {
+    const updatedFields = { status: "Inactive" };
     await Employee.findByIdAndUpdate(
       { _id: req.body.id },
       { $set: updatedFields },
