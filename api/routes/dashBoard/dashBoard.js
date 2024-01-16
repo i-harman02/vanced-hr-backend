@@ -37,7 +37,9 @@ router.get("/new-employee", async (req, res) => {
     const user = employee.map(async (val, idx) => {
       const user_Id = val._id;
       const employeeImg = usersImg.find((elm) => elm.user_Id.equals(user_Id));
-      const image = { path: employeeImg.path, id: employeeImg.id };
+      const image = employeeImg
+        ? { path: employeeImg.path, id: employeeImg.id }
+        : "";
       return { ...val._doc, image };
     });
     const employees = await Promise.all(user);
