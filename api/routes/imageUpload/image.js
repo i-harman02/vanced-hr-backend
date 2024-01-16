@@ -89,9 +89,9 @@ router.put("/update/:id", upload.single("image"), async (req, res) => {
     const { originalname, path } = req.file;
 console.log('req.file:', req.file);
 
-    const buffer = await readFile(path);
+    // const buffer = await readFile(path);
 
-    console.log('buffer:', buffer);
+    // console.log('buffer:', buffer);
 
 
     // const { url } = await put(`employee/${originalname}`, buffer, options);
