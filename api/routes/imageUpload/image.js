@@ -24,7 +24,7 @@ router.post("/upload/:id",  async (req, res) => {
       throw new Error('No files were uploaded.');
     }
     const upComingImage = req.files.image; // Make sure 'image' matches the name attribute in your HTML form
-    console.log('Request received:', image);
+    // console.log('Request received:', upComingImage);
     if (!upComingImage || !upComingImage.data) {
       throw new Error('File data is missing mimetype. ' + JSON.stringify(upComingImage.mimetype));
     }
