@@ -87,16 +87,22 @@ router.put("/update/:id", upload.single("image"), async (req, res) => {
     // }
 
     const { originalname, path } = req.file;
+console.log('req.file:', req.file);
+
     const buffer = await readFile(path);
-    const { url } = await put(`employee/${originalname}`, buffer, options);
+
+    console.log('buffer:', buffer);
+
+
+    // const { url } = await put(`employee/${originalname}`, buffer, options);
     // console.log('Upload successful:', url);
 
     // Update the image path in the database
-    await Image.findOneAndUpdate(
-      { user_Id: userId },
-      { path: url },
-      { new: true, upsert: true }
-    );
+    // await Image.findOneAndUpdate(
+    //   { user_Id: userId },
+    //   { path: url },
+    //   { new: true, upsert: true }
+    // );
 
     res.status(200).send("Image updated successfully!");
   } catch (error) {
