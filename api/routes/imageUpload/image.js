@@ -1,40 +1,37 @@
 const express = require("express");
-const multer = require("multer");
 const fs = require("fs");
 const router = express.Router();
 const Image = require("../../../models/image");
 const removeImage = require("../../helpers/deleteImage/deleteImage");
-
 const { put } = require("@vercel/blob");
-const util = require('util');
-const readFile = util.promisify(fs.readFile);
+
 
 const options = {
   access: 'public',
-  token: process.env.BLOB_READ_WRITE_TOKEN, // Replace with your actual Vercel Blob authentication token
+  token: 'vercel_blob_rw_9QbdfSoqetuiJMDC_OHYTvZ9VfO5UZ0qaFSj5lNs9Nr77q1', // Replace with your actual Vercel Blob authentication token
 };
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "public/");
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname);
-  },
-});
-
-const upload = multer({ storage: storage });
 
 // Upload image
-router.post("/upload/:id", upload.single("image"), async (req, res) => {
+router.post("/upload/:id",  async (req, res) => {
   try {
     // const imagePath = req.file.path;
     const userId = req.params.id;
     const existingUser = await Image.findOne({ user_Id: userId });
-    const { originalname, path } = req.file;
-    const buffer = await readFile(path);
-    const { url } = await put(`employee/${originalname}`, buffer, options);
-    // console.log('Upload successful:', url);
+
+    // Image Save on server
+    if (!req.files || Object.keys(req.files).length === 0) {
+      throw new Error('No files were uploaded.');
+    }
+    const upComingImage = req.files.image; // Make sure 'image' matches the name attribute in your HTML form
+    console.log('Request received:', image);
+    if (!upComingImage || !upComingImage.data) {
+      throw new Error('File data is missing mimetype. ' + JSON.stringify(upComingImage.mimetype));
+    }
+    const { data, name } = upComingImage;
+    const { url } = await put(`home/${name}`, data, options);
+    console.log('Upload successful:', url);
+    
 
     if (existingUser) {
       fs.unlinkSync(url);
@@ -74,35 +71,30 @@ router.get("/get/:id", async (req, res) => {
   }
 });
 
-router.put("/update/:id", upload.single("image"), async (req, res) => {
+router.put("/update/:id", async (req, res) => {
   try {
     
     const userId = req.params.id;
-    // const imagePath = req.file ? req.file.path : null;
-    // const existingImage = await Image.findOne({ user_Id: userId });
-
-    // // Delete existing image file if found
-    // if (existingImage && existingImage.path) {
-    //   fs.unlinkSync(existingImage.path); // Delete the existing image file
-    // }
-
-    const { originalname, path } = req.file;
-console.log('req.file:', req.file);
-
-    // const buffer = await readFile(path);
-
-    // console.log('buffer:', buffer);
-
-
-    // const { url } = await put(`employee/${originalname}`, buffer, options);
-    // console.log('Upload successful:', url);
+    // Check if req.file is populated
+    if (!req.files || Object.keys(req.files).length === 0) {
+      throw new Error('No files were uploaded.');
+    }
+    const image = req.files.image; // Make sure 'image' matches the name attribute in your HTML form
+    console.log('Request received:', image);
+    if (!image || !image.data) {
+      throw new Error('File data is missing mimetype. ' + JSON.stringify(image.mimetype));
+    }
+    const { data, name } = image;
+    const { url } = await put(`home/${name}`, data, options);
+    
+    console.log('Upload successful:', url);
 
     // Update the image path in the database
-    // await Image.findOneAndUpdate(
-    //   { user_Id: userId },
-    //   { path: url },
-    //   { new: true, upsert: true }
-    // );
+    await Image.findOneAndUpdate(
+      { user_Id: userId },
+      { path: url },
+      { new: true, upsert: true }
+    );
 
     res.status(200).send("Image updated successfully!");
   } catch (error) {

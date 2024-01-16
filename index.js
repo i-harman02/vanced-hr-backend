@@ -7,10 +7,10 @@ let { PRODUCTION_PORT } = config;
 const PORT = PRODUCTION_PORT || 9000;
 const swaggerDocs = require("./api/swagger/swagger");
 const path = require('path');
-
+const fileUpload = require('express-fileupload');
 app.use(cors())
 app.use(express.json())
-
+app.use(fileUpload());
 // Database connection
 require("./db/connection");
 
