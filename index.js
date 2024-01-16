@@ -14,7 +14,7 @@ const fs = require("fs");
 const { put } = require("@vercel/blob");
 const util = require('util');
 const readFile = util.promisify(fs.readFile);
-
+const fileUpload = require('express-fileupload');
 
 app.use(cors())
 app.use(express.json())
@@ -34,21 +34,22 @@ const options = {
 };
 
 
+app.use(fileUpload());
 
-app.post('/api/testing', upload.single('image'), async (req, res) => {
+app.post('/api/testing', async (req, res) => {
   try {
     // Check if req.file is populated
-    if (!req.file) {
-      throw new Error('No file received');
+    if (!req.files || Object.keys(req.files).length === 0) {
+      throw new Error('No files were uploaded.');
     }
 
-    // Now, req.file should contain the uploaded file information
-    const { originalname, buffer } = req.file;
+    const image = req.files.image; // Make sure 'image' matches the name attribute in your HTML form
 
     // Process and handle the file here
-    const { url } = await put(`home/${originalname}`, buffer, options);
+    const { data, name } = image;
+    const { url } = await put(`home/${name}`, data, options);
+    
     console.log('Upload successful:', url);
-
     res.send("Working 0.2");
   } catch (error) {
     console.error('Error during file upload:', error);
