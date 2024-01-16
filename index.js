@@ -8,6 +8,14 @@ const PORT = PRODUCTION_PORT || 9000;
 const swaggerDocs = require("./api/swagger/swagger");
 const path = require('path');
 
+
+const multer = require('multer');
+const fs = require("fs");
+const { put } = require("@vercel/blob");
+const util = require('util');
+const readFile = util.promisify(fs.readFile);
+
+
 app.use(cors())
 app.use(express.json())
 
@@ -15,7 +23,34 @@ app.use(express.json())
 require("./db/connection");
 
 
-app.get("/api/testing", async (req, res) => { res.send("Working 0.1") });
+
+
+const storage = multer.memoryStorage(); // You can customize the storage as needed
+const upload = multer({ storage: storage });
+
+const options = {
+  access: 'public',
+  token: 'vercel_blob_rw_9QbdfSoqetuiJMDC_OHYTvZ9VfO5UZ0qaFSj5lNs9Nr77q1', // Replace with your actual Vercel Blob authentication token
+};
+
+
+
+  app.post('/api/testing', upload.single('image'), async  (req, res) => {
+    // Now, req.file should contain the uploaded file information
+    const { originalname, buffer } = req.file;
+    // Process and handle the file here
+
+
+    // const { originalname, path } = req.file;
+    // const buffer = await readFile(path);
+    const { url } = await put(`home/${originalname}`, buffer, options);
+    console.log('Upload successful:', url);
+    res.send("Working 0.2")
+
+
+  });
+
+
 
 // Authentication routes
 app.use("/api", routs);
