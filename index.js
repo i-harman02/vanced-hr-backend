@@ -45,8 +45,7 @@ app.post('/api/testing', async (req, res) => {
 
     const image = req.files.image; // Make sure 'image' matches the name attribute in your HTML form
     console.log('Request received:', image);
-    if (!image.data) {
-      
+    if (!image || !image.data) {
       throw new Error('File data is missing mimetype. ' + JSON.stringify(image.mimetype));
     }
 
@@ -59,11 +58,11 @@ app.post('/api/testing', async (req, res) => {
     // }
 
 
-    // // Process and handle the file here
-    // const { data, name } = image;
-    // const { url } = await put(`home/${name}`, data, options);
+    // Process and handle the file here
+    const { data, name } = image;
+    const { url } = await put(`home/${name}`, data, options);
     
-    // console.log('Upload successful:', url);
+    console.log('Upload successful:', url);
     res.send("Working 0.2");
   } catch (error) {
     console.error('Error during file upload:', error);
