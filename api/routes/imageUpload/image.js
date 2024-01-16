@@ -29,7 +29,7 @@ router.post("/upload/:id",  async (req, res) => {
       throw new Error('File data is missing mimetype. ' + JSON.stringify(upComingImage.mimetype));
     }
     const { data, name } = upComingImage;
-    const { url } = await put(`home/${name}`, data, options);
+    const { url } = await put(`employee/${name}`, data, options);
     console.log('Upload successful:', url);
     
 
@@ -85,7 +85,7 @@ router.put("/update/:id", async (req, res) => {
       throw new Error('File data is missing mimetype. ' + JSON.stringify(image.mimetype));
     }
     const { data, name } = image;
-    const { url } = await put(`home/${name}`, data, options);
+    const { url } = await put(`employee/${name}`, data, options);
     
     console.log('Upload successful:', url);
 
