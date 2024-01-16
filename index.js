@@ -42,13 +42,15 @@ app.post('/api/testing', async (req, res) => {
     if (!req.files || Object.keys(req.files).length === 0) {
       throw new Error('No files were uploaded.');
     }
-    
-    if (req.files) {
-      throw new Error('File data is missing. ' + JSON.stringify(req.files.image));
+
+    const image = req.files.image; // Make sure 'image' matches the name attribute in your HTML form
+
+    if (!image) {
+      throw new Error('File data is missing hhhhhhhhhhhhhhhh. ');
     }
 
 
-    // const image = req.files.image; // Make sure 'image' matches the name attribute in your HTML form
+
 
     // // Ensure that the 'data' property exists
     // if (!image || !image.data) {
