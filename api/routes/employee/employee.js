@@ -104,11 +104,12 @@ router.put("/update-employee", async (req, res) => {
   }
 });
 
-router.put("/employee-status", async (req, res) => {
+router.put("/employee-status/:id", async (req, res) => {
   try {
+    const userId = req.params.id;
     const updatedFields = { status: "Inactive" };
     await Employee.findByIdAndUpdate(
-      { _id: req.body.id },
+      { _id: userId },
       { $set: updatedFields },
       { new: true, upsert: true }
     );
