@@ -65,31 +65,14 @@ router.get("/all-project", async (req, res) => {
 router.get("/assigned-project/:id", async (req, res) => {
   try {
     const userId = req.params.id;
-    const projects = await Projects.find({
-      $or: [
-        {
-          teamLeader: {
-            $elemMatch: {
-              id: userId,
-            },
-          },
-        },
-        {
-          team: {
-            $elemMatch: {
-              id: userId,
-            },
-          },
-        },
-      ],
-    })
+    const projects = await Projects.find({})
       .populate({
-        path: "teamLeader.id",
-        select: "userName designation employeeId firstName lastName",
-      })
-      .populate({
-        path: "teamLeader.image",
-        select: "path",
+        path: "team",
+        select: "teamLeader teamMember projectName status createdAt",
+        populate: {
+          path: "teamLeader.id teamMember.id teamLeader.image teamMember.image",
+          select: "userName mail  firstName lastName path",
+        },
       })
       .populate({
         path: "client.id",
@@ -98,13 +81,32 @@ router.get("/assigned-project/:id", async (req, res) => {
       .populate({
         path: "client.image",
         select: "path",
+      });
+    res.status(200).json(projects);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+router.get("/client-project/:id", async (req, res) => {
+  try {
+    const clientId = req.params.id;
+    const projects = await Projects.find({ "client.id": clientId })
+      .populate({
+        path: "team",
+        select: "teamLeader teamMember projectName status createdAt",
+        populate: {
+          path: "teamLeader.id teamMember.id teamLeader.image teamMember.image",
+          select: "userName mail  firstName lastName path",
+        },
       })
       .populate({
-        path: "team.id",
-        select: "userName designation employeeId firstName lastName",
+        path: "client.id",
+        select: "userName mail organization firstName lastName",
       })
       .populate({
-        path: "team.image",
+        path: "client.image",
         select: "path",
       });
     res.status(200).json(projects);
