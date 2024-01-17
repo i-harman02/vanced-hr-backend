@@ -45,21 +45,12 @@ router.post("/add-client", async (req, res) => {
 
 router.get("/detail", async (req, res) => {
   try {
-    const clientId = req.body.id;
-    let query = {};
-
-    if (clientId) {
-      query = { _id: clientId };
-    }
-
     const usersImg = await Image.find({});
-    const client = await Client.find(query);
+    const client = await Client.find({});
     const clientDetail = client.map(async (val, idx) => {
       const user_Id = val._id;
       const clientImg = usersImg.find((elm) => elm.user_Id.equals(user_Id));
-      const image = employeeImg
-        ? { path: employeeImg.path, id: employeeImg.id }
-        : "";
+      const image = clientImg ? { path: clientImg.path, id: clientImg.id } : "";
       return { ...val._doc, image };
     });
     const clientDetails = await Promise.all(clientDetail);
