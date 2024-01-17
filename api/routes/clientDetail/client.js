@@ -57,7 +57,9 @@ router.get("/detail", async (req, res) => {
     const clientDetail = client.map(async (val, idx) => {
       const user_Id = val._id;
       const clientImg = usersImg.find((elm) => elm.user_Id.equals(user_Id));
-      const image = { path: clientImg.path, id: clientImg.id };
+      const image = employeeImg
+        ? { path: employeeImg.path, id: employeeImg.id }
+        : "";
       return { ...val._doc, image };
     });
     const clientDetails = await Promise.all(clientDetail);
