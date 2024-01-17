@@ -36,7 +36,9 @@ router.post("/add-client", async (req, res) => {
       lastName,
     });
     await newClient.save();
-    res.status(201).json({ message: "Client registered successfully" });
+    res
+      .status(201)
+      .json({ message: "Client registered successfully", client: newClient });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });
@@ -69,7 +71,7 @@ router.put("/detail-update", async (req, res) => {
       { $set: updatedFields },
       { new: true, upsert: true }
     );
-    res.status(200).send("Client detail updated successfully!");
+    res.status(200).json({ message: "Client detail updated successfully!" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });
