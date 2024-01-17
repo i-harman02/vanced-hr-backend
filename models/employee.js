@@ -45,6 +45,9 @@ const employeeSchema = new mongoose.Schema({
     type: String,
     default: "Active",
   },
+  appraisalDate: {
+    type: Date,
+  },
   personalInformation: {
     telephones: [
       {

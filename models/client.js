@@ -37,12 +37,10 @@ const clientSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  socialMedia: [
-    {
-      type: String,
-      required: true,
-    },
-  ],
+  socialMedia: {
+    type: String,
+    required: true,
+  },
   contactNumber: {
     type: Number,
     required: true,
