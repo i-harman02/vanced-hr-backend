@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Client = require("../../../models/client");
 const Image = require("../../../models/image");
+const removeImage = require("../../helpers/deleteImage/deleteImage");
 
 router.post("/add-client", async (req, res) => {
   try {
