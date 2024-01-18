@@ -82,7 +82,15 @@ router.get("/assigned-project/:id", async (req, res) => {
         path: "client.image",
         select: "path",
       });
-    res.status(200).json(projects);
+    const filteredProjects = projects.filter((val) => {
+      const isTeamLeader = val.team.teamLeader.id.equals(userId);
+      const isTeamMember = val.team.teamMember.some((elm) =>
+        elm.id.equals(userId)
+      );
+
+      return isTeamLeader || isTeamMember;
+    });
+    res.status(200).json(filteredProjects);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
