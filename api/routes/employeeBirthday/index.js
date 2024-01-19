@@ -22,6 +22,11 @@ router.get("/details", async (req, res) => {
           day: 1,
         },
       },
+      {
+        $match: {
+          status: "Active",
+        },
+      },
     ]);
     // Update the birth year to the current year
     const updatedEmployees = employees.map((employee) => {
