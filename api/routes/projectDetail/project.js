@@ -76,6 +76,7 @@ router.get("/all-project", async (req, res) => {
 router.get("/assigned-project/:id", async (req, res) => {
   try {
     const userId = req.params.id;
+    const Images = await Image.find({});
     const projects = await Projects.find({})
       .populate({
         path: "team",
@@ -101,6 +102,18 @@ router.get("/assigned-project/:id", async (req, res) => {
 
       return isTeamLeader || isTeamMember;
     });
+    const project = filteredProjects.map(async (val) => {
+      const project_Id = val._id;
+      const projectImg = Images.find((elm) => elm.user_Id.equals(project_Id));
+      const projectImage = projectImg
+        ? { path: projectImg.path, id: projectImg.id }
+        : "";
+      return { ...val._doc, projectImage };
+    });
+
+    const projectsList = await Promise.all(project);
+    res.status(200).json(projectsList);
+
     res.status(200).json(filteredProjects);
   } catch (error) {
     console.error(error);
@@ -111,6 +124,7 @@ router.get("/assigned-project/:id", async (req, res) => {
 router.get("/client-project/:id", async (req, res) => {
   try {
     const clientId = req.params.id;
+    const Images = await Image.find({});
     const projects = await Projects.find({ "client.id": clientId })
       .populate({
         path: "team",
@@ -128,7 +142,17 @@ router.get("/client-project/:id", async (req, res) => {
         path: "client.image",
         select: "path",
       });
-    res.status(200).json(projects);
+    const project = projects.map(async (val) => {
+      const project_Id = val._id;
+      const projectImg = Images.find((elm) => elm.user_Id.equals(project_Id));
+      const projectImage = projectImg
+        ? { path: projectImg.path, id: projectImg.id }
+        : "";
+      return { ...val._doc, projectImage };
+    });
+
+    const projectsList = await Promise.all(project);
+    res.status(200).json(projectsList);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
