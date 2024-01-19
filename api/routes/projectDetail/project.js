@@ -38,6 +38,7 @@ router.post("/add-details", async (req, res) => {
 
 router.get("/all-project", async (req, res) => {
   try {
+    const Images = await Image.find({});
     const projects = await Projects.find({})
       .populate({
         path: "team",
@@ -56,7 +57,17 @@ router.get("/all-project", async (req, res) => {
         select: "path",
       });
 
-    res.status(200).json(projects);
+    const project = projects.map(async (val) => {
+      const project_Id = val._id;
+      const projectImg = Images.find((elm) => elm.user_Id.equals(project_Id));
+      const projectImage = projectImg
+        ? { path: projectImg.path, id: projectImg.id }
+        : "";
+      return { ...val._doc, projectImage };
+    });
+
+    const projectsList = await Promise.all(project);
+    res.status(200).json(projectsList);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");

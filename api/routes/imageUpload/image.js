@@ -5,40 +5,40 @@ const Image = require("../../../models/image");
 const removeImage = require("../../helpers/deleteImage/deleteImage");
 const { put } = require("@vercel/blob");
 
-
 const options = {
-  access: 'public',
-  token: 'vercel_blob_rw_9QbdfSoqetuiJMDC_OHYTvZ9VfO5UZ0qaFSj5lNs9Nr77q1', // Replace with your actual Vercel Blob authentication token
+  access: "public",
+  token: "vercel_blob_rw_9QbdfSoqetuiJMDC_OHYTvZ9VfO5UZ0qaFSj5lNs9Nr77q1", // Replace with your actual Vercel Blob authentication token
 };
 
-
 // Upload image
-router.post("/upload/:id",  async (req, res) => {
+router.post("/upload/:id", async (req, res) => {
   try {
     // const imagePath = req.file.path;
     const userId = req.params.id;
-    const existingUser = await Image.findOne({ user_Id: userId });
+    // const existingUser = await Image.findOne({ user_Id: userId });
 
     // Image Save on server
     if (!req.files || Object.keys(req.files).length === 0) {
-      throw new Error('No files were uploaded.');
+      throw new Error("No files were uploaded.");
     }
     const upComingImage = req.files.image; // Make sure 'image' matches the name attribute in your HTML form
     // console.log('Request received:', upComingImage);
     if (!upComingImage || !upComingImage.data) {
-      throw new Error('File data is missing mimetype. ' + JSON.stringify(upComingImage.mimetype));
+      throw new Error(
+        "File data is missing mimetype. " +
+          JSON.stringify(upComingImage.mimetype)
+      );
     }
     const { data, name } = upComingImage;
     const { url } = await put(`employee/${name}`, data, options);
-    console.log('Upload successful:', url);
-    
+    console.log("Upload successful:", url);
 
-    if (existingUser) {
-      fs.unlinkSync(url);
-      return res
-        .status(409)
-        .json({ message: "Image already exists for this user" });
-    }
+    // if (existingUser) {
+    //   fs.unlinkSync(url);
+    //   return res
+    //     .status(409)
+    //     .json({ message: "Image already exists for this user" });
+    // }
 
     const image = new Image({
       user_Id: req.params.id,
@@ -73,21 +73,22 @@ router.get("/get/:id", async (req, res) => {
 
 router.put("/update/:id", async (req, res) => {
   try {
-    
     const userId = req.params.id;
     // Check if req.file is populated
     if (!req.files || Object.keys(req.files).length === 0) {
-      throw new Error('No files were uploaded.');
+      throw new Error("No files were uploaded.");
     }
     const image = req.files.image; // Make sure 'image' matches the name attribute in your HTML form
-    console.log('Request received:', image);
+    console.log("Request received:", image);
     if (!image || !image.data) {
-      throw new Error('File data is missing mimetype. ' + JSON.stringify(image.mimetype));
+      throw new Error(
+        "File data is missing mimetype. " + JSON.stringify(image.mimetype)
+      );
     }
     const { data, name } = image;
     const { url } = await put(`employee/${name}`, data, options);
-    
-    console.log('Upload successful:', url);
+
+    console.log("Upload successful:", url);
 
     // Update the image path in the database
     await Image.findOneAndUpdate(
