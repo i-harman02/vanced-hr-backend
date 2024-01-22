@@ -113,8 +113,6 @@ router.get("/assigned-project/:id", async (req, res) => {
 
     const projectsList = await Promise.all(project);
     res.status(200).json(projectsList);
-
-    res.status(200).json(filteredProjects);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
