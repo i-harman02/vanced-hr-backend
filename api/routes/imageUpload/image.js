@@ -97,10 +97,10 @@ router.put("/update/:id", async (req, res) => {
       { new: true, upsert: true }
     );
 
-    res.status(200).send("Image updated successfully!");
+    res.status(200).json({ message: "Image updated successfully!" });
   } catch (error) {
     console.error(error);
-    res.status(500).send("Internal Server Error");
+    res.status(500).json({ message: "Something went wrong" });
   }
 });
 router.delete("/delete/:id", async (req, res) => {
