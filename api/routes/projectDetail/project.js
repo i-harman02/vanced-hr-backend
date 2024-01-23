@@ -29,7 +29,9 @@ router.post("/add-details", async (req, res) => {
       currentStatus,
     });
     await newProject.save();
-    res.status(201).json({ message: "Project added successfully" });
+    res
+      .status(201)
+      .json({ message: "Project added successfully", Project: newProject });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });
