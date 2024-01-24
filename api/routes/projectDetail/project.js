@@ -47,7 +47,7 @@ router.get("/all-project", async (req, res) => {
         select: "teamLeader teamMember projectName status createdAt",
         populate: {
           path: "teamLeader.id teamMember.id teamLeader.image teamMember.image",
-          select: "userName mail  firstName lastName path",
+          select: "userName email  firstName lastName path",
         },
       })
       .populate({
@@ -85,7 +85,7 @@ router.get("/assigned-project/:id", async (req, res) => {
         select: "teamLeader teamMember projectName status createdAt",
         populate: {
           path: "teamLeader.id teamMember.id teamLeader.image teamMember.image",
-          select: "userName mail  firstName lastName path",
+          select: "userName email  firstName lastName path",
         },
       })
       .populate({
@@ -131,7 +131,7 @@ router.get("/client-project/:id", async (req, res) => {
         select: "teamLeader teamMember projectName status createdAt",
         populate: {
           path: "teamLeader.id teamMember.id teamLeader.image teamMember.image",
-          select: "userName mail  firstName lastName path",
+          select: "userName email  firstName lastName path",
         },
       })
       .populate({
