@@ -6,8 +6,7 @@ const Termination = require("../../../models/termination");
 
 router.post("/add-termination", async (req, res) => {
   try {
-    const { terminatedEmployee, reason, designation, terminatedDate } =
-      req.body;
+    const { terminatedEmployee, reason, terminatedDate } = req.body;
     const profile = await Image.findOne({
       user_Id: terminatedEmployee,
     });
@@ -16,7 +15,6 @@ router.post("/add-termination", async (req, res) => {
       terminatedEmployee,
       image: profileId,
       reason,
-      designation,
       terminatedDate,
     });
     await newTermination.save();
