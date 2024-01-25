@@ -29,7 +29,7 @@ router.get("/resignation-details", async (req, res) => {
     const resignationDetails = await Resignation.find({})
       .populate({
         path: "resignationEmployee",
-        select: "userName designation employeeId firstName lastName",
+        select: "userName designation employeeId firstName lastName email",
       })
       .populate({
         path: "image",

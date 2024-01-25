@@ -30,7 +30,7 @@ router.get("/details", async (req, res) => {
     const terminationDetails = await Termination.find({})
       .populate({
         path: "terminatedEmployee",
-        select: "userName designation employeeId firstName lastName",
+        select: "userName designation employeeId firstName lastName email",
       })
       .populate({
         path: "image",
