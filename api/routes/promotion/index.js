@@ -40,7 +40,7 @@ router.get("/details", async (req, res) => {
     const promotionDetails = await Promotion.find({})
       .populate({
         path: "promotedEmployee",
-        select: "userName designation employeeId firstName lastName",
+        select: "userName designation employeeId firstName lastName email",
       })
       .populate({
         path: "image",
