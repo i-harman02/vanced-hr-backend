@@ -18,10 +18,6 @@ const terminationSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
-  designation: {
-    type: String,
-    required: true,
-  },
 });
 const Termination = mongoose.model("Termination", terminationSchema);
 
