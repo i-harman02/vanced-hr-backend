@@ -42,9 +42,46 @@ router.get("/resignation-details", async (req, res) => {
   }
 });
 
+router.get("/resignation-details/:id", async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const resignationDetails = await Resignation.find({
+      resignationEmployee: userId,
+    })
+      .populate({
+        path: "resignationEmployee",
+        select: "userName designation employeeId firstName lastName email",
+      })
+      .populate({
+        path: "image",
+        select: "path",
+      });
+    res.status(200).json(resignationDetails);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
 router.put("/update-details", async (req, res) => {
   try {
     const updatedFields = req.body;
+    await Resignation.findByIdAndUpdate(
+      { _id: req.body.id },
+      { $set: updatedFields },
+      { new: true, upsert: true }
+    );
+    res.status(200).send("Detail updated successfully!");
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+router.put("/resignation-status-update", async (req, res) => {
+  try {
+    const status = req.body.status;
+    const updatedFields = { status };
     await Resignation.findByIdAndUpdate(
       { _id: req.body.id },
       { $set: updatedFields },

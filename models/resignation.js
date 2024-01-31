@@ -18,6 +18,10 @@ const resignationSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
+  status: {
+    type: String,
+    default: "Pending",
+  },
 });
 
 const Resignation = mongoose.model("Resignation", resignationSchema);
