@@ -389,7 +389,7 @@ router.put("/status-update", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-router.delete("/delete-leave:id", async (req, res) => {
+router.delete("/delete-leave/:id", async (req, res) => {
   try {
     let { id } = req.params;
     let deleted = await Image.deleteOne({ _id: id });
