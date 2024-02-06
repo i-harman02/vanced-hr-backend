@@ -402,7 +402,7 @@ router.delete("/delete-leave/:id", async (req, res) => {
 
 router.put("/update-leave", async (req, res) => {
   try {
-    const updatedFields = { ...req.body, status: "Pending" };
+    const updatedFields = { ...req.body, status: "Pending", approvedBy: {} };
 
     const overlappingLeaveRequest = await Leaves.findOne({
       employee: req.body.employee,
@@ -458,7 +458,6 @@ router.get("/today-stats", async (req, res) => {
     const totalEmployee = employee.length;
     const totalPresent = totalEmployee - approvedLeaves.length;
     const unplannedLeaves = 0;
-    console.log(approvedLeaves.length);
     const todayLeaveStates = {
       approvedLeaves: approvedLeaves.length,
       pendingLeaves: pendingLeaves.length,
