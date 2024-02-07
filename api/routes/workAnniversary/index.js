@@ -12,11 +12,11 @@ router.get("/details", async (req, res) => {
         $project: {
           firstName: 1,
           lastName: 1,
-          birthday: 1,
+          dateOfJoining: 1,
           userName: 1,
           status: 1,
-          month: { $month: "$birthday" },
-          day: { $dayOfMonth: "$birthday" },
+          month: { $month: "$dateOfJoining" },
+          day: { $dayOfMonth: "$dateOfJoining" },
         },
       },
       {
@@ -31,8 +31,8 @@ router.get("/details", async (req, res) => {
         },
       },
     ]);
-    const todayBirthDay = [];
-    const upcomingBirthDay = [];
+    const todayAnniversary = [];
+    const upcomingAnniversary = [];
     var today = new Date();
     today.setHours(0, 0, 0, 0);
     employees.forEach((employee) => {
@@ -41,24 +41,24 @@ router.get("/details", async (req, res) => {
       const image = employeeImg
         ? { path: employeeImg.path, id: employeeImg.id }
         : "";
-      const birthDate = new Date(employee.birthday);
-      birthDate.setFullYear(currentYear);
-      const nextBirthDate = new Date(employee.birthday);
-      nextBirthDate.setFullYear(currentYear);
+      const anniversaryDate = new Date(employee.dateOfJoining);
+      anniversaryDate.setFullYear(currentYear);
+      const nextAnniversary = new Date(employee.dateOfJoining);
+      nextAnniversary.setFullYear(currentYear);
 
-      nextBirthDate.setFullYear(nextBirthDate.getFullYear() + 1);
-      const date = birthDate >= today ? birthDate : nextBirthDate;
+      nextAnniversary.setFullYear(nextAnniversary.getFullYear() + 1);
+      const date = anniversaryDate >= today ? anniversaryDate : nextAnniversary;
 
       if (
         date.getDate() === today.getDate() &&
         date.getMonth() === today.getMonth() &&
         date.getFullYear() === today.getFullYear()
       ) {
-        todayBirthDay.push({
+        todayAnniversary.push({
           ...employee,
-          birthday: {
+          workAnniversary: {
             thisYear: date,
-            original: employee.birthday,
+            original: employee.dateOfJoining,
           },
           image,
         });
@@ -67,16 +67,16 @@ router.get("/details", async (req, res) => {
           const currentDate = new Date(today);
           currentDate.setDate(today.getDate() + i);
 
-          const isBirthdayForCurrentDate =
+          const workAnniversaryForCurrentDate =
             date.getDate() === currentDate.getDate() &&
             date.getMonth() === currentDate.getMonth() &&
             date.getFullYear() === currentDate.getFullYear();
-          if (isBirthdayForCurrentDate) {
-            upcomingBirthDay.push({
+          if (workAnniversaryForCurrentDate) {
+            upcomingAnniversary.push({
               ...employee,
-              birthday: {
+              workAnniversary: {
                 thisYear: date,
-                original: employee.birthday,
+                original: employee.dateOfJoining,
               },
               image,
             });
@@ -84,9 +84,9 @@ router.get("/details", async (req, res) => {
         }
       }
     });
-    const todayBirthdays = await Promise.all(todayBirthDay);
-    const upcomingBirthDays = await Promise.all(upcomingBirthDay);
-    const birthData = { todayBirthdays, upcomingBirthDays };
+    const todayWorkAnniversary = await Promise.all(todayAnniversary);
+    const upcomingWorkAnniversary = await Promise.all(upcomingAnniversary);
+    const birthData = { todayWorkAnniversary, upcomingWorkAnniversary };
     res.status(200).json(birthData);
   } catch (error) {
     console.error(error);
