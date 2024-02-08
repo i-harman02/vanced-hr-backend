@@ -98,7 +98,8 @@ router.get("/on-leave", async (req, res) => {
       })
       .populate({
         path: "employee",
-        select: "userName designation employeeId firstName lastName email",
+        select:
+          "userName designation employeeId firstName lastName email personalInformation.telephones address",
       });
 
     res.status(200).json(employeesOnLeaveToday);
