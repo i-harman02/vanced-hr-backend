@@ -187,14 +187,30 @@ router.get("/stats/:id", async (req, res) => {
         "default",
         { month: "long" }
       );
-      const leaveDaysInMonth = leaveData
-        .filter((leave) => {
-          const leaveYear = new Date(leave.startDate).getFullYear();
-          const leaveMonth = new Date(leave.startDate).getMonth() + 1;
-          return leaveYear === currentYear && leaveMonth === month;
-        })
-        .reduce((totalDays, leave) => totalDays + leave.noOfDays, 0);
-      return { month: monthName, leaveDays: leaveDaysInMonth, monthNo: month };
+      const leaveDataForMonth = leaveData.filter((leave) => {
+        const leaveYear = new Date(leave.startDate).getFullYear();
+        const leaveMonth = new Date(leave.startDate).getMonth() + 1;
+        return leaveYear === currentYear && leaveMonth === month;
+      });
+      // .reduce((totalDays, leave) => totalDays + leave.noOfDays, 0);
+      let leaveDaysInMonth = 0;
+      let shortLeaves = 0;
+
+      leaveDataForMonth.forEach((leave) => {
+        if (leave.leaveType === "HALF_DAY_LEAVE") {
+          leaveDaysInMonth += 0.5;
+        } else if (leave.leaveType === "SHORT_LEAVE") {
+          shortLeaves += leave.noOfDays;
+        } else {
+          leaveDaysInMonth += leave.noOfDays;
+        }
+      });
+      return {
+        month: monthName,
+        leaveDays: leaveDaysInMonth,
+        monthNo: month,
+        shortLeaves,
+      };
     });
 
     res.status(200).json(leaveStats);
