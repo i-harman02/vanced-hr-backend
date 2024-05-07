@@ -4,8 +4,9 @@ const Projects = require("../../../models/projects");
 const Client = require("../../../models/client");
 const Employee = require("../../../models/employee");
 const Image = require("../../../models/image");
+const auth = require('../../helpers/auth')
 
-router.get("/all-count", async (req, res) => {
+router.get("/all-count",auth, async (req, res) => {
   try {
     const employee = await Employee.find({});
     const client = await Client.find({});
@@ -21,7 +22,7 @@ router.get("/all-count", async (req, res) => {
   }
 });
 
-router.get("/new-employee", async (req, res) => {
+router.get("/new-employee",auth, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     const usersImg = await Image.find({});

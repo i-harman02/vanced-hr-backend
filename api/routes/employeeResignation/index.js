@@ -2,8 +2,9 @@ const express = require("express");
 const router = express.Router();
 const Resignation = require("../../../models/resignation");
 const Image = require("../../../models/image");
+const auth = require('../../helpers/auth')
 
-router.post("/add-resignation", async (req, res) => {
+router.post("/add-resignation",auth, async (req, res) => {
   try {
     const { resignationEmployee, reason, resignedDate } = req.body;
     const profile = await Image.findOne({
@@ -24,7 +25,7 @@ router.post("/add-resignation", async (req, res) => {
   }
 });
 
-router.get("/resignation-details", async (req, res) => {
+router.get("/resignation-details",auth, async (req, res) => {
   try {
     const resignationDetails = await Resignation.find({})
       .populate({
@@ -42,7 +43,7 @@ router.get("/resignation-details", async (req, res) => {
   }
 });
 
-router.get("/resignation-details/:id", async (req, res) => {
+router.get("/resignation-details/:id",auth, async (req, res) => {
   try {
     const userId = req.params.id;
     const resignationDetails = await Resignation.find({
@@ -63,7 +64,7 @@ router.get("/resignation-details/:id", async (req, res) => {
   }
 });
 
-router.put("/update-details", async (req, res) => {
+router.put("/update-details",auth, async (req, res) => {
   try {
     const updatedFields = req.body;
     await Resignation.findByIdAndUpdate(
@@ -78,7 +79,7 @@ router.put("/update-details", async (req, res) => {
   }
 });
 
-router.put("/resignation-status-update", async (req, res) => {
+router.put("/resignation-status-update",auth, async (req, res) => {
   try {
     const status = req.body.status;
     const updatedFields = { status };
@@ -94,7 +95,7 @@ router.put("/resignation-status-update", async (req, res) => {
   }
 });
 
-router.delete("/delete/:id", async (req, res) => {
+router.delete("/delete/:id",auth, async (req, res) => {
   try {
     let { id } = req.params;
     let deleted = await Resignation.deleteOne({ _id: id });

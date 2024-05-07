@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const Team = require("../../../models/team");
+const auth = require('../../helpers/auth')
 
-router.post("/create-team", async (req, res) => {
+router.post("/create-team",auth, async (req, res) => {
   try {
     const { teamLeader, teamMember, status, teamName } = req.body;
     const newTeam = new Team({ teamLeader, teamMember, status, teamName });
@@ -13,7 +14,7 @@ router.post("/create-team", async (req, res) => {
     res.status(500).json({ message: "Something went wrong" });
   }
 });
-router.get("/my-team/:id", async (req, res) => {
+router.get("/my-team/:id",auth, async (req, res) => {
   try {
     const userId = req.params.id;
     const teams = await Team.find({
@@ -44,7 +45,7 @@ router.get("/my-team/:id", async (req, res) => {
   }
 });
 
-router.get("/all-team", async (req, res) => {
+router.get("/all-team",auth, async (req, res) => {
   try {
     const users = await Team.find({})
       .populate({
@@ -72,7 +73,7 @@ router.get("/all-team", async (req, res) => {
   }
 });
 
-router.put("/update-team", async (req, res) => {
+router.put("/update-team",auth, async (req, res) => {
   try {
     const updatedFields = req.body;
     await Team.findOneAndUpdate(
@@ -87,7 +88,7 @@ router.put("/update-team", async (req, res) => {
   }
 });
 
-router.delete("/team-delete/:id", async (req, res) => {
+router.delete("/team-delete/:id",auth, async (req, res) => {
   try {
     let { id } = req.params;
     let deleted = await Team.deleteOne({ _id: id });

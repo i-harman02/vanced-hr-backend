@@ -8,6 +8,7 @@ const Image = require("../../../models/image");
 const config = require("../../../config");
 const { JWT_SECRET } = config;
 const removeImage = require("../../helpers/deleteImage/deleteImage");
+const auth = require('../../helpers/auth')
 
 const router = express.Router();
 const saltRounds = 10;
@@ -84,7 +85,7 @@ router.post("/add-employee", async (req, res) => {
   }
 });
 
-router.put("/update-employee", async (req, res) => {
+router.put("/update-employee",auth, async (req, res) => {
   try {
     const password = req?.body?.password;
     const hashedPassword = password
@@ -106,7 +107,7 @@ router.put("/update-employee", async (req, res) => {
   }
 });
 
-router.put("/employee-status/:id", async (req, res) => {
+router.put("/employee-status/:id",auth, async (req, res) => {
   try {
     const userId = req.params.id;
     const updatedFields = { status: "Inactive" };
@@ -122,7 +123,7 @@ router.put("/employee-status/:id", async (req, res) => {
   }
 });
 
-router.get("/list", async (req, res) => {
+router.get("/list",auth, async (req, res) => {
   try {
     const usersImg = await Image.find({});
     const users = await Employee.find({}, { password: 0 });
@@ -140,7 +141,7 @@ router.get("/list", async (req, res) => {
     res.status(500).json({ message: "Something went wrong" });
   }
 });
-router.get("/active-user", async (req, res) => {
+router.get("/active-user",auth, async (req, res) => {
   try {
     const usersImg = await Image.find({});
     const users = await Employee.find({ status: "Active" }, { password: 0 });
@@ -159,7 +160,7 @@ router.get("/active-user", async (req, res) => {
   }
 });
 
-router.delete("/delete/:id", async (req, res) => {
+router.delete("/delete/:id",auth, async (req, res) => {
   try {
     let { id } = req.params;
     let deleted = await Employee.deleteOne({ _id: id });

@@ -4,6 +4,7 @@ const router = express.Router();
 const Image = require("../../../models/image");
 const removeImage = require("../../helpers/deleteImage/deleteImage");
 const { put } = require("@vercel/blob");
+const auth = require('../../helpers/auth')
 
 const options = {
   access: "public",
@@ -11,7 +12,7 @@ const options = {
 };
 
 // Upload image
-router.post("/upload/:id", async (req, res) => {
+router.post("/upload/:id",auth, async (req, res) => {
   try {
     // const imagePath = req.file.path;
     const userId = req.params.id;
@@ -53,7 +54,7 @@ router.post("/upload/:id", async (req, res) => {
 });
 
 // Get image by ID
-router.get("/get/:id", async (req, res) => {
+router.get("/get/:id",auth, async (req, res) => {
   try {
     const userId = req.params.id;
     const image = await Image.findOne({ user_Id: userId });
@@ -71,7 +72,7 @@ router.get("/get/:id", async (req, res) => {
   }
 });
 
-router.put("/update/:id", async (req, res) => {
+router.put("/update/:id",auth, async (req, res) => {
   try {
     const userId = req.params.id;
     // Check if req.file is populated
@@ -103,7 +104,7 @@ router.put("/update/:id", async (req, res) => {
     res.status(500).json({ message: "Something went wrong" });
   }
 });
-router.delete("/delete/:id", async (req, res) => {
+router.delete("/delete/:id",auth, async (req, res) => {
   try {
     let { id } = req.params;
     // const userId = req.params.id;

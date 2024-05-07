@@ -2,8 +2,9 @@ const express = require("express");
 const router = express.Router();
 const Holiday = require("../../../models/holidayList");
 const Image = require("../../../models/image");
+const auth = require('../../helpers/auth')
 
-router.post("/list", async (req, res) => {
+router.post("/list",auth, async (req, res) => {
   try {
     const { holidayName, year, startDate, endDate, description } = req.body;
 
@@ -21,7 +22,7 @@ router.post("/list", async (req, res) => {
   }
 });
 
-router.get("/get-list/:year", async (req, res) => {
+router.get("/get-list/:year",auth, async (req, res) => {
   try {
     const selectedYear = req.params.year;
     const image = await Image.find({});

@@ -3,8 +3,9 @@ const router = express.Router();
 const Client = require("../../../models/client");
 const Image = require("../../../models/image");
 const removeImage = require("../../helpers/deleteImage/deleteImage");
+const auth = require('../../helpers/auth')
 
-router.post("/add-client", async (req, res) => {
+router.post("/add-client",auth, async (req, res) => {
   try {
     const {
       userName,
@@ -46,7 +47,7 @@ router.post("/add-client", async (req, res) => {
   }
 });
 
-router.get("/detail", async (req, res) => {
+router.get("/detail",auth, async (req, res) => {
   try {
     const usersImg = await Image.find({});
     const client = await Client.find({});
@@ -64,7 +65,7 @@ router.get("/detail", async (req, res) => {
   }
 });
 
-router.put("/detail-update", async (req, res) => {
+router.put("/detail-update",auth, async (req, res) => {
   try {
     const updatedFields = req.body;
     await Client.findByIdAndUpdate(
@@ -78,7 +79,7 @@ router.put("/detail-update", async (req, res) => {
     res.status(500).json({ message: "Something went wrong" });
   }
 });
-router.delete("/delete/:id", async (req, res) => {
+router.delete("/delete/:id",auth, async (req, res) => {
   try {
     let { id } = req.params;
     let deleted = await Client.deleteOne({ _id: id });

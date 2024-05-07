@@ -2,8 +2,9 @@ const express = require("express");
 const router = express.Router();
 const Comment = require("../../../models/comment");
 const Announcement = require("../../../models/announcement");
+const auth = require('../../helpers/auth')
 
-router.post("/post", async (req, res) => {
+router.post("/post",auth, async (req, res) => {
   try {
     const { employee, image, text, id } = req.body;
     if (!employee || !image || !text) {
@@ -30,7 +31,7 @@ router.post("/post", async (req, res) => {
   }
 });
 
-router.delete("/delete-comment", async (req, res) => {
+router.delete("/delete-comment",auth, async (req, res) => {
   try {
     let id = req.body.postId;
     let commentId = req.body.commentId;
@@ -49,7 +50,7 @@ router.delete("/delete-comment", async (req, res) => {
   }
 });
 
-router.put("/update=comment", async (req, res) => {
+router.put("/update=comment",auth, async (req, res) => {
   try {
     const commentId = req.body.id;
     const updatedFields = req.body;
@@ -65,7 +66,7 @@ router.put("/update=comment", async (req, res) => {
   }
 });
 
-router.post("/like-post", async (req, res) => {
+router.post("/like-post",auth, async (req, res) => {
   try {
 
     // imageId and employeeId

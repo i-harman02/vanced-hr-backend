@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const Employee = require("../../../models/employee");
+const auth = require('../../helpers/auth')
 
-router.get("/details", async (req, res) => {
+router.get("/details",auth, async (req, res) => {
   try {
     const employee = await Employee.aggregate([
       {

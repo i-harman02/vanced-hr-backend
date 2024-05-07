@@ -5,6 +5,8 @@ const Employee = require("../../../models/employee");
 const { JWT_SECRET } = config;
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const BlackList=require("../../../models/blackList")
+const auth = require('../../helpers/auth')
 
 router.post("/login", async (req, res) => {
   try {
@@ -36,6 +38,33 @@ router.post("/login", async (req, res) => {
     res.json({ message: "Login successfully", user: employee, token });
   } catch (error) {
     res.status(500).json({ message: "Something went wrong" });
+  }
+});
+router.post("/logout", auth, async (req, res) => {
+  try {
+    let token = req.header("x-auth-token");
+
+    if (!token) {
+      // If x-auth-token header is not present, check for Authorization header
+      const authHeader = req.header("Authorization");
+      if (authHeader) {
+        // Get the token from the Authorization header
+        const parts = authHeader.split(" ");
+        if (parts.length === 2 && parts[0] === "Bearer") {
+          token = parts[1];
+        }
+      }
+    }
+    const newBlackListedToken = new BlackList({
+      token,
+    });
+    await newBlackListedToken.save();
+    res.status(200).json({
+      message: "You have logout successfully",
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
   }
 });
 module.exports = router;

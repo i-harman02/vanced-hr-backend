@@ -3,8 +3,9 @@ const router = express.Router();
 const Image = require("../../../models/image");
 const Employee = require("../../../models/employee");
 const Termination = require("../../../models/termination");
+const auth = require('../../helpers/auth')
 
-router.post("/add-termination", async (req, res) => {
+router.post("/add-termination",auth, async (req, res) => {
   try {
     const { terminatedEmployee, reason, terminatedDate } = req.body;
     const profile = await Image.findOne({
@@ -25,7 +26,7 @@ router.post("/add-termination", async (req, res) => {
   }
 });
 
-router.get("/details", async (req, res) => {
+router.get("/details",auth, async (req, res) => {
   try {
     const terminationDetails = await Termination.find({})
       .populate({
@@ -43,7 +44,7 @@ router.get("/details", async (req, res) => {
   }
 });
 
-router.put("/update-details", async (req, res) => {
+router.put("/update-details",auth, async (req, res) => {
   try {
     const updatedFields = req.body;
     await Termination.findByIdAndUpdate(
@@ -58,7 +59,7 @@ router.put("/update-details", async (req, res) => {
   }
 });
 
-router.delete("/delete/:id", async (req, res) => {
+router.delete("/delete/:id",auth, async (req, res) => {
   try {
     let { id } = req.params;
     let deleted = await Termination.deleteOne({ _id: id });

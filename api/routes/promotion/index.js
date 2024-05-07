@@ -3,8 +3,9 @@ const router = express.Router();
 const Image = require("../../../models/image");
 const Promotion = require("../../../models/promotion");
 const Employee = require("../../../models/employee");
+const auth = require('../../helpers/auth')
 
-router.post("/add-promotion", async (req, res) => {
+router.post("/add-promotion",auth, async (req, res) => {
   try {
     const { promotedEmployee, from, to, startDate, promotionDate } = req.body;
     const profile = await Image.findOne({
@@ -35,7 +36,7 @@ router.post("/add-promotion", async (req, res) => {
   }
 });
 
-router.get("/details", async (req, res) => {
+router.get("/details",auth, async (req, res) => {
   try {
     const promotionDetails = await Promotion.find({})
       .populate({
@@ -53,7 +54,7 @@ router.get("/details", async (req, res) => {
   }
 });
 
-router.put("/update-details", async (req, res) => {
+router.put("/update-details",auth, async (req, res) => {
   try {
     const updatedFields = req.body;
     await Promotion.findByIdAndUpdate(
@@ -68,7 +69,7 @@ router.put("/update-details", async (req, res) => {
   }
 });
 
-router.delete("/delete/:id", async (req, res) => {
+router.delete("/delete/:id",auth, async (req, res) => {
   try {
     let { id } = req.params;
     let deleted = await Promotion.deleteOne({ _id: id });

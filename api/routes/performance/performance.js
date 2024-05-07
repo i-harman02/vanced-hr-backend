@@ -2,8 +2,9 @@ const express = require("express");
 const router = express.Router();
 const Performance = require("../../../models/performance");
 const Image = require("../../../models/image");
+const auth = require('../../helpers/auth')
 
-router.post("/add-performance", async (req, res) => {
+router.post("/add-performance",auth, async (req, res) => {
   try {
     const { employee, addedBy, projectName, comments, date } = req.body;
     const employeeImageId = await Image.findOne({ user_Id: employee });
@@ -27,7 +28,7 @@ router.post("/add-performance", async (req, res) => {
   }
 });
 
-router.get("/all-performance", async (req, res) => {
+router.get("/all-performance",auth, async (req, res) => {
   try {
     const feedback = await Performance.find({})
       .populate({
@@ -57,7 +58,7 @@ router.get("/all-performance", async (req, res) => {
   }
 });
 
-router.get("/employee-performance/:id", async (req, res) => {
+router.get("/employee-performance/:id",auth, async (req, res) => {
   try {
     const { id } = req.params;
     const feedback = await Performance.find({ employee: id })
@@ -88,7 +89,7 @@ router.get("/employee-performance/:id", async (req, res) => {
   }
 });
 
-router.put("/update-performance", async (req, res) => {
+router.put("/update-performance",auth, async (req, res) => {
   try {
     const updatedFields = req.body;
     await Performance.findByIdAndUpdate(
@@ -103,7 +104,7 @@ router.put("/update-performance", async (req, res) => {
   }
 });
 
-router.delete("/delete/:id", async (req, res) => {
+router.delete("/delete/:id",auth, async (req, res) => {
   try {
     let { id } = req.params;
     let deleted = await Performance.deleteOne({ _id: id });

@@ -4,8 +4,9 @@ const Announcement = require("../../../models/announcement");
 const Image = require("../../../models/image");
 const Comment = require("../../../models/comment");
 const removeImage = require("../../helpers/deleteImage/deleteImage");
+const auth = require('../../helpers/auth')
 
-router.post("/add", async (req, res) => {
+router.post("/add",auth, async (req, res) => {
   try {
     const { employee, title, description } = req.body;
     const profile = await Image.findOne({
@@ -29,7 +30,7 @@ router.post("/add", async (req, res) => {
   }
 });
 
-router.get("/list", async (req, res) => {
+router.get("/list",auth, async (req, res) => {
   try {
     const usersImg = await Image.find({});
     const announcement = await Announcement.find({})
@@ -72,7 +73,7 @@ router.get("/list", async (req, res) => {
   }
 });
 
-router.delete("/delete/:id", async (req, res) => {
+router.delete("/delete/:id",auth, async (req, res) => {
   try {
     let { id } = req.params;
     const announcement = await Announcement.findOne({ _id: id });
@@ -88,7 +89,7 @@ router.delete("/delete/:id", async (req, res) => {
     res.status(500).json({ message: "Something went wrong" });
   }
 });
-router.put("/update-announcement", async (req, res) => {
+router.put("/update-announcement",auth, async (req, res) => {
   try {
     const announcementId = req.body.id;
     const updatedFields = req.body;

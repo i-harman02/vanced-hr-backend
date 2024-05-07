@@ -2,8 +2,9 @@ const express = require("express");
 const router = express.Router();
 const Projects = require("../../../models/projects");
 const Image = require("../../../models/image");
+const auth = require('../../helpers/auth')
 
-router.post("/add-details", async (req, res) => {
+router.post("/add-details",auth, async (req, res) => {
   try {
     const {
       team,
@@ -38,7 +39,7 @@ router.post("/add-details", async (req, res) => {
   }
 });
 
-router.get("/all-project", async (req, res) => {
+router.get("/all-project",auth, async (req, res) => {
   try {
     const Images = await Image.find({});
     const projects = await Projects.find({})
@@ -75,7 +76,7 @@ router.get("/all-project", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-router.get("/assigned-project/:id", async (req, res) => {
+router.get("/assigned-project/:id",auth, async (req, res) => {
   try {
     const userId = req.params.id;
     const Images = await Image.find({});
@@ -121,7 +122,7 @@ router.get("/assigned-project/:id", async (req, res) => {
   }
 });
 
-router.get("/client-project/:id", async (req, res) => {
+router.get("/client-project/:id",auth, async (req, res) => {
   try {
     const clientId = req.params.id;
     const Images = await Image.find({});
@@ -159,7 +160,7 @@ router.get("/client-project/:id", async (req, res) => {
   }
 });
 
-router.put("/update-project", async (req, res) => {
+router.put("/update-project",auth, async (req, res) => {
   try {
     const projectId = req.body.id;
     const updatedFields = req.body;
