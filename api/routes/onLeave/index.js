@@ -4,9 +4,10 @@ const Leaves = require("../../../models/onLeaveToday");
 const LeaveBalance = require("../../../models/leaveBalances");
 const Image = require("../../../models/image");
 const Employee = require("../../../models/employee");
+const auth = require("../../helpers/auth");
 //const nodemailer = require("nodemailer");
 
-router.post("/apply-leave", async (req, res) => {
+router.post("/apply-leave",auth, async (req, res) => {
   try {
     const {
       //userName,
@@ -84,7 +85,7 @@ router.post("/apply-leave", async (req, res) => {
   }
 });
 
-router.get("/on-leave", async (req, res) => {
+router.get("/on-leave",auth, async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
 
@@ -109,7 +110,7 @@ router.get("/on-leave", async (req, res) => {
   }
 });
 
-router.get("/balance/:id", async (req, res) => {
+router.get("/balance/:id",auth, async (req, res) => {
   try {
     const userId = req.params.id;
     const currentYear = new Date().getFullYear();
@@ -147,7 +148,7 @@ router.get("/balance/:id", async (req, res) => {
   }
 });
 
-router.get("/all-leaves/:id", async (req, res) => {
+router.get("/all-leaves/:id",auth, async (req, res) => {
   try {
     const userId = req.params.id;
     const currentYear = new Date().getFullYear();
@@ -174,7 +175,7 @@ router.get("/all-leaves/:id", async (req, res) => {
   }
 });
 
-router.get("/stats/:id", async (req, res) => {
+router.get("/stats/:id",auth, async (req, res) => {
   try {
     const userId = req.params.id;
     const currentYear = new Date().getFullYear();
@@ -277,7 +278,7 @@ router.get("/stats/:id", async (req, res) => {
 //   }
 // });
 
-router.get("/history/:id", async (req, res) => {
+router.get("/history/:id",auth, async (req, res) => {
   try {
     const userId = req.params.id;
     const currentYear = new Date().getFullYear();
@@ -327,7 +328,7 @@ router.get("/history/:id", async (req, res) => {
   }
 });
 
-router.get("/requested/:id", async (req, res) => {
+router.get("/requested/:id", auth, async (req, res) => {
   try {
     const userId = req.params.id;
     const leaveData = await Leaves.find({
@@ -356,7 +357,7 @@ router.get("/requested/:id", async (req, res) => {
   }
 });
 
-router.get("/all-requested-leaves", async (req, res) => {
+router.get("/all-requested-leaves",auth, async (req, res) => {
   try {
     const leaveData = await Leaves.find({})
       .populate({
@@ -382,7 +383,7 @@ router.get("/all-requested-leaves", async (req, res) => {
   }
 });
 
-router.put("/status-update", async (req, res) => {
+router.put("/status-update",auth, async (req, res) => {
   try {
     const userId = req.body.id;
     const employerId = req.body.employerId;
@@ -406,7 +407,7 @@ router.put("/status-update", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-router.delete("/delete-leave/:id", async (req, res) => {
+router.delete("/delete-leave/:id",auth, async (req, res) => {
   try {
     let { id } = req.params;
     let deleted = await Image.deleteOne({ _id: id });
@@ -417,7 +418,7 @@ router.delete("/delete-leave/:id", async (req, res) => {
   }
 });
 
-router.put("/update-leave", async (req, res) => {
+router.put("/update-leave",auth, async (req, res) => {
   try {
     const updatedFields = { ...req.body, status: "Pending", approvedBy: {} };
 
@@ -444,7 +445,7 @@ router.put("/update-leave", async (req, res) => {
   }
 });
 
-router.get("/today-stats", async (req, res) => {
+router.get("/today-stats",auth, async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
     const employee = await Employee.find({});
