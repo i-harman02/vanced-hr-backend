@@ -98,8 +98,8 @@ router.get("/assigned-project/:id",auth, async (req, res) => {
         select: "path",
       });
     const filteredProjects = projects.filter((val) => {
-      const isTeamLeader = val.team.teamLeader.id.equals(userId);
-      const isTeamMember = val.team.teamMember.some((elm) =>
+      const isTeamLeader = val?.team?.teamLeader?.id?.equals(userId);
+      const isTeamMember = val?.team?.teamMember?.some((elm) =>
         elm.id.equals(userId)
       );
 
