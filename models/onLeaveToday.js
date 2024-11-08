@@ -9,7 +9,6 @@ const onLeaveTodaySchema = new mongoose.Schema({
   image: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Image",
-    required: true,
   },
   startDate: {
     type: Date,

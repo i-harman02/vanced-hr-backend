@@ -35,7 +35,7 @@ router.post("/apply-leave",auth, async (req, res) => {
     const profile = await Image.findOne({
       user_Id: employee,
     });
-    const profileId = profile._id;
+    const profileId = profile?._id;
     if (overlappingLeaveRequest) {
       return res
         .status(400)
