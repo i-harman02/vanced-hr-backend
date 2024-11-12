@@ -5,9 +5,10 @@ const LeaveBalance = require("../../../models/leaveBalances");
 const Image = require("../../../models/image");
 const Employee = require("../../../models/employee");
 const auth = require("../../helpers/auth");
+const calculateShortLeave = require("../../helpers/calculateShortLeaves");
 //const nodemailer = require("nodemailer");
 
-router.post("/apply-leave",auth, async (req, res) => {
+router.post("/apply-leave", auth, async (req, res) => {
   try {
     const {
       //userName,
@@ -85,7 +86,7 @@ router.post("/apply-leave",auth, async (req, res) => {
   }
 });
 
-router.get("/on-leave",auth, async (req, res) => {
+router.get("/on-leave", auth, async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
 
@@ -110,7 +111,7 @@ router.get("/on-leave",auth, async (req, res) => {
   }
 });
 
-router.get("/balance/:id",auth, async (req, res) => {
+router.get("/balance/:id", auth, async (req, res) => {
   try {
     const userId = req.params.id;
     const currentYear = new Date().getFullYear();
@@ -124,20 +125,96 @@ router.get("/balance/:id",auth, async (req, res) => {
     });
     const approvedLeaves = leavesByYear.filter((leave) => {
       const leaveDay = new Date(leave.startDate);
-      return leaveDay <= currentDate && leave.status === "Approved";
+      return (
+        leaveDay <= currentDate &&
+        leave.status === "Approved" &&
+        leave.leaveType === "FULL_DAY_LEAVE"
+      );
     });
+    const approvedHalfDaysLeaves = leavesByYear.filter((leave) => {
+      const leaveDay = new Date(leave.startDate);
+      return (
+        leaveDay <= currentDate &&
+        leave.status === "Approved" &&
+        leave.leaveType === "HALF_DAY_LEAVE"
+      );
+    });
+
+    const approvedShortLeaves = leavesByYear.filter((leave) => {
+      const leaveDay = new Date(leave.startDate);
+      return (
+        leaveDay <= currentDate &&
+        leave.status === "Approved" &&
+        leave.leaveType === "SHORT_LEAVE"
+      );
+    });
+
     const pendingLeaves = leavesByYear.filter((leave) => {
       const leaveDay = new Date(leave.startDate);
-      return leaveDay <= currentDate && leave.status === "Pending";
+      return (
+        leaveDay <= currentDate &&
+        leave.status === "Pending" &&
+        leave.leaveType === "FULL_DAY_LEAVE"
+      );
     });
+    const pendingHalfDayLeaves = leavesByYear.filter((leave) => {
+      const leaveDay = new Date(leave.startDate);
+      return (
+        leaveDay <= currentDate &&
+        leave.status === "Pending" &&
+        leave.leaveType === "HALF_DAY_LEAVE"
+      );
+    });
+    const pendingShortLeaves = leavesByYear.filter((leave) => {
+      const leaveDay = new Date(leave.startDate);
+      return (
+        leaveDay <= currentDate &&
+        leave.status === "Pending" &&
+        leave.leaveType === "SHORT_LEAVE"
+      );
+    });
+    let allLeaves = 0;
+    approvedLeaves.forEach((val) => {
+      allLeaves += val.noOfDays;
+    });
+    approvedHalfDaysLeaves.forEach((val) => {
+      allLeaves += 0.5;
+    });
+
+    let allUnpaidLeaves = 0;
+    pendingLeaves.forEach((val) => {
+      allUnpaidLeaves += val.noOfDays;
+    });
+    pendingHalfDayLeaves.forEach((val) => {
+      allUnpaidLeaves += 0.5;
+    });
+
+    allLeaves += await calculateShortLeave(approvedShortLeaves);
+    allUnpaidLeaves += await calculateShortLeave(pendingShortLeaves);
+    const totalShortLeaves =
+      (approvedShortLeaves ? approvedShortLeaves.length : 0) +
+      (pendingShortLeaves ? pendingShortLeaves.length : 0);
+    let leftLeave = 0;
     const totalLeave = 12;
-    const paidLeave = approvedLeaves ? approvedLeaves?.length : 0;
-    const unPaidLeave = pendingLeaves ? pendingLeaves?.length : 0;
-    const remainingLeave = totalLeave - paidLeave;
+    let paidLeave;
+    if (allLeaves <= 12) {
+      paidLeave = allLeaves;
+      leftLeave = totalLeave - allLeaves;
+    } else {
+      paidLeave = 12;
+      allUnpaidLeaves += allLeaves - 12;
+      leftLeave = 0;
+    }
+
+    const unPaidLeave = allUnpaidLeaves;
+    const remainingLeave = leftLeave;
+    const shortLeave = totalShortLeaves;
+
     const leaveBalances = {
       totalLeave,
       paidLeave,
       unPaidLeave,
+      shortLeave,
       remainingLeave,
     };
 
@@ -148,7 +225,7 @@ router.get("/balance/:id",auth, async (req, res) => {
   }
 });
 
-router.get("/all-leaves/:id",auth, async (req, res) => {
+router.get("/all-leaves/:id", auth, async (req, res) => {
   try {
     const userId = req.params.id;
     const currentYear = new Date().getFullYear();
@@ -175,7 +252,7 @@ router.get("/all-leaves/:id",auth, async (req, res) => {
   }
 });
 
-router.get("/stats/:id",auth, async (req, res) => {
+router.get("/stats/:id", auth, async (req, res) => {
   try {
     const userId = req.params.id;
     const currentYear = new Date().getFullYear();
@@ -278,7 +355,7 @@ router.get("/stats/:id",auth, async (req, res) => {
 //   }
 // });
 
-router.get("/history/:id",auth, async (req, res) => {
+router.get("/history/:id", auth, async (req, res) => {
   try {
     const userId = req.params.id;
     const currentYear = new Date().getFullYear();
@@ -357,7 +434,7 @@ router.get("/requested/:id", auth, async (req, res) => {
   }
 });
 
-router.get("/all-requested-leaves",auth, async (req, res) => {
+router.get("/all-requested-leaves", auth, async (req, res) => {
   try {
     const leaveData = await Leaves.find({})
       .populate({
@@ -383,7 +460,7 @@ router.get("/all-requested-leaves",auth, async (req, res) => {
   }
 });
 
-router.put("/status-update",auth, async (req, res) => {
+router.put("/status-update", auth, async (req, res) => {
   try {
     const userId = req.body.id;
     const employerId = req.body.employerId;
@@ -407,7 +484,7 @@ router.put("/status-update",auth, async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-router.delete("/delete-leave/:id",auth, async (req, res) => {
+router.delete("/delete-leave/:id", auth, async (req, res) => {
   try {
     let { id } = req.params;
     let deleted = await Image.deleteOne({ _id: id });
@@ -418,7 +495,7 @@ router.delete("/delete-leave/:id",auth, async (req, res) => {
   }
 });
 
-router.put("/update-leave",auth, async (req, res) => {
+router.put("/update-leave", auth, async (req, res) => {
   try {
     const updatedFields = { ...req.body, status: "Pending", approvedBy: {} };
 
@@ -445,7 +522,7 @@ router.put("/update-leave",auth, async (req, res) => {
   }
 });
 
-router.get("/today-stats",auth, async (req, res) => {
+router.get("/today-stats", auth, async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
     const employee = await Employee.find({});

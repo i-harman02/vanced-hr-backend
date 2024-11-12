@@ -5,8 +5,8 @@ const Employee = require("../../../models/employee");
 const { JWT_SECRET } = config;
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const BlackList=require("../../../models/blackList")
-const auth = require('../../helpers/auth')
+const BlackList = require("../../../models/blackList");
+const auth = require("../../helpers/auth");
 
 router.post("/login", async (req, res) => {
   try {
@@ -29,7 +29,7 @@ router.post("/login", async (req, res) => {
       { id: user._id, username: user.userName },
       JWT_SECRET,
       {
-        expiresIn: "1h",
+        expiresIn: "10h",
       }
     );
 
