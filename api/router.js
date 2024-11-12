@@ -19,6 +19,7 @@ const termination = require("./routes/termination");
 const birthday = require("./routes/employeeBirthday");
 const appraisalDate = require("./routes/employeeAppraisal");
 const workAnniversary = require("./routes/workAnniversary");
+const policy = require("./routes/policy/index");
 
 /**
  * @openapi
@@ -177,5 +178,6 @@ router.use("/termination", termination);
 router.use("/birthday", birthday);
 router.use("/appraisalDate", appraisalDate);
 router.use("/workAnniversary", workAnniversary);
+router.use("/policy", policy);
 
 module.exports = router;
