@@ -38,6 +38,7 @@ router.get("/get-list/:year", auth, async (req, res) => {
       const img = image.find((elm) => elm.user_Id.equals(_id));
       if (currentYear === year) {
         holidaysByYear.push({
+          _id,
           holidayName,
           startDate,
           endDate,
