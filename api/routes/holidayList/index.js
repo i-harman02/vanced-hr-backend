@@ -3,6 +3,7 @@ const router = express.Router();
 const Holiday = require("../../../models/holidayList");
 const Image = require("../../../models/image");
 const auth = require("../../helpers/auth");
+const removeImage = require("../../helpers/deleteImage/deleteImage");
 
 router.post("/list", auth, async (req, res) => {
   try {
@@ -50,6 +51,34 @@ router.get("/get-list/:year", auth, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
+  }
+});
+
+router.put("/:id", auth, async (req, res) => {
+  try {
+    const holidayId = req.params.id;
+    const updatedFields = req.body;
+    await Holiday.findByIdAndUpdate(
+      { _id: holidayId },
+      { $set: updatedFields },
+      { new: true, upsert: true }
+    );
+    res.status(200).json({ message: "Holiday detail updated successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+router.delete("/:id", auth, async (req, res) => {
+  try {
+    let { id } = req.params;
+    let deleted = await Holiday.deleteOne({ _id: id });
+    await removeImage(id);
+    res.status(200).send({ message: "Holiday deleted successfully!", deleted });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Something went wrong" });
   }
 });
 
