@@ -16,8 +16,10 @@ router.post("/list", auth, async (req, res) => {
       endDate,
       description,
     });
-    await newHoliday.save();
-    res.status(201).json({ message: "New holiday added successfully" });
+    const holiday = await newHoliday.save();
+    res
+      .status(201)
+      .json({ message: "New holiday added successfully", holiday });
   } catch (error) {
     res.status(500).json({ message: "Something went wrong" });
   }
