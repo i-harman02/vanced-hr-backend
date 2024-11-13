@@ -4,6 +4,9 @@ const policySchema = new mongoose.Schema(
     description: {
       type: String,
     },
+    heading: {
+      type: String,
+    },
   },
   { timestamps: true }
 );
