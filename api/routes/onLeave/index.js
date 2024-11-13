@@ -258,6 +258,7 @@ router.get("/stats/:id", auth, async (req, res) => {
     const currentYear = new Date().getFullYear();
     const leaveData = await Leaves.find({
       employee: userId,
+      status: { $ne: "Declined" },
     });
     const leaveStats = Array.from({ length: 12 }, (_, index) => {
       const month = index + 1;
@@ -272,19 +273,63 @@ router.get("/stats/:id", auth, async (req, res) => {
       });
       // .reduce((totalDays, leave) => totalDays + leave.noOfDays, 0);
       let leaveDaysInMonth = 0;
+      let approvedFullDayLeave = 0;
+      let pendingFullDayLeave = 0;
+      let approvedHalfDayLeave = 0;
+      let pendingHalfDayLeave = 0;
+      let approvedShortLeave = 0;
+      let pendingShortLeave = 0;
       let shortLeaves = 0;
 
       leaveDataForMonth.forEach((leave) => {
-        if (leave.leaveType === "HALF_DAY_LEAVE") {
-          leaveDaysInMonth += 0.5;
-        } else if (leave.leaveType === "SHORT_LEAVE") {
-          shortLeaves += leave.noOfDays;
-        } else {
+        if (
+          leave.status === "Approved" &&
+          leave.leaveType === "FULL_DAY_LEAVE"
+        ) {
           leaveDaysInMonth += leave.noOfDays;
+          approvedFullDayLeave += leave.noOfDays;
+        } else if (
+          leave.status === "Approved" &&
+          leave.leaveType === "HALF_DAY_LEAVE"
+        ) {
+          leaveDaysInMonth += 0.5;
+          approvedHalfDayLeave += 0.5;
+        } else if (
+          leave.status === "Approved" &&
+          leave.leaveType === "SHORT_LEAVE"
+        ) {
+          approvedShortLeave += 1;
+          shortLeaves += 1;
+        } else if (
+          leave.status === "Pending" &&
+          leave.leaveType === "FULL_DAY_LEAVE"
+        ) {
+          leaveDaysInMonth += leave.noOfDays;
+          pendingFullDayLeave += leave.noOfDays;
+        } else if (
+          leave.status === "Pending" &&
+          leave.leaveType === "HALF_DAY_LEAVE"
+        ) {
+          leaveDaysInMonth += 0.5;
+          pendingHalfDayLeave += 0.5;
+        } else if (
+          leave.status === "Pending" &&
+          leave.leaveType === "SHORT_LEAVE"
+        ) {
+          pendingShortLeave += 1;
+          shortLeaves += 1;
         }
       });
+
+      leaveDaysInMonth += Math.floor(shortLeaves / 3) * 0.5;
       return {
         month: monthName,
+        approvedFullDayLeave,
+        pendingFullDayLeave,
+        approvedHalfDayLeave,
+        pendingHalfDayLeave,
+        approvedShortLeave,
+        pendingShortLeave,
         leaveDays: leaveDaysInMonth,
         monthNo: month,
         shortLeaves,
