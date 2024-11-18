@@ -81,7 +81,7 @@ router.put("/update-team",auth, async (req, res) => {
       { $set: updatedFields },
       { new: true, upsert: true }
     );
-    res.status(200).send({ message: "Leave updated successfully!" });
+    res.status(200).send({ message: "Team updated successfully!" });
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");

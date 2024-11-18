@@ -18,7 +18,7 @@ router.post("/add-resignation",auth, async (req, res) => {
       resignedDate,
     });
     await newResignation.save();
-    res.status(201).json({ message: "Employee promoted successfully" });
+    res.status(201).json({ message: "Resignation Added successfully" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });

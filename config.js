@@ -1,4 +1,4 @@
-const dontenv = require("dotenv").config();
+const dotenv = require("dotenv").config();
 const env = process.env;
 module.exports = {
   PRODUCTION_PORT: env.PORT,

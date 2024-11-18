@@ -24,7 +24,7 @@ router.post("/add-promotion",auth, async (req, res) => {
     await newPromotion.save();
 
     await Employee.findByIdAndUpdate(
-      { _id: promotedEmployee },
+      { _id: promotedEmployee},
       { $set: updatedFields },
       { new: true, upsert: true }
     );
@@ -38,7 +38,7 @@ router.post("/add-promotion",auth, async (req, res) => {
 
 router.get("/details",auth, async (req, res) => {
   try {
-    const promotionDetails = await Promotion.find({})
+    const promotionDetails = await Promotion.find({ })
       .populate({
         path: "promotedEmployee",
         select: "userName designation employeeId firstName lastName email",
@@ -58,7 +58,7 @@ router.put("/update-details",auth, async (req, res) => {
   try {
     const updatedFields = req.body;
     await Promotion.findByIdAndUpdate(
-      { _id: req.body.id },
+      { _id: req.body.id},
       { $set: updatedFields },
       { new: true, upsert: true }
     );

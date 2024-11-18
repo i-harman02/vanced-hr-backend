@@ -21,7 +21,7 @@ router.post("/add-performance",auth, async (req, res) => {
       date,
     });
     await newComment.save();
-    res.status(201).json({ message: "Comment added successfully" });
+    res.status(201).json({ message: "Performance added successfully" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });
@@ -97,7 +97,7 @@ router.put("/update-performance",auth, async (req, res) => {
       { $set: updatedFields },
       { new: true, upsert: true }
     );
-    res.status(200).send("Performance detail updated successfully!");
+    res.status(200).send({message: "Performance detail updated successfully!"});
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });
