@@ -8,7 +8,15 @@ const Image = require("../../../models/image");
 const config = require("../../../config");
 const { JWT_SECRET } = config;
 const removeImage = require("../../helpers/deleteImage/deleteImage");
-const auth = require('../../helpers/auth')
+const auth = require('../../helpers/auth');
+const Leaves = require("../../../models/onLeaveToday");
+const Performances = require("../../../models/performance");
+const Promotion = require("../../../models/promotion");
+const Resignation = require("../../../models/resignation");
+const Termination = require("../../../models/termination");
+const Teams = require("../../../models/team");
+const Announcement = require("../../../models/announcement");
+const Comments = require("../../../models/comment");
 
 const router = express.Router();
 const saltRounds = 10;
@@ -162,8 +170,41 @@ router.get("/active-user",auth, async (req, res) => {
 
 router.delete("/delete/:id",auth, async (req, res) => {
   try {
-    let { id } = req.params;
-    let deleted = await Employee.deleteOne({ _id: id });
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).send({ message: "Employee ID is required!" });
+    }
+    await Promise.all([
+      Leaves.deleteMany({ employee: id }), 
+      Performances.deleteMany({ employee: id }), 
+      Promotion.deleteMany({ promotedEmployee: id }), 
+      Resignation.deleteMany({ resignationEmployee: id }), 
+      Termination.deleteMany({ terminatedEmployee: id }),
+      Teams.updateMany(
+        {
+          $or: [
+            { "teamLeader.id": id }, 
+            { "teamMember.id": id }, 
+          ],
+        },
+        {
+          $pull: { 
+            "teamLeader.id": id, 
+            "teamMember.id": { $in: [id] }, 
+          },
+        }
+      ),
+      Announcement.deleteMany({employee : id}),
+      Comments.deleteMany({employee : id }),
+
+    ]);
+    await Teams.deleteMany({
+      $or: [
+        { "teamLeader.id": { $exists: false } },  
+        // { "teamMember.id": { $size: 0 } },  // No members
+      ],
+    });
+    const deleted = await Employee.deleteOne({ _id: id });
     await removeImage(id);
     res
       .status(200)
