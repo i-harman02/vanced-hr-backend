@@ -24,36 +24,58 @@ router.post("/list", auth, async (req, res) => {
     res.status(500).json({ message: "Something went wrong" });
   }
 });
-
 router.get("/get-list/:year", auth, async (req, res) => {
   try {
     const selectedYear = req.params.year;
-    const image = await Image.find({});
     const currentYear = selectedYear
       ? parseInt(selectedYear, 10)
       : new Date().getFullYear();
-    const holidays = await Holiday.find().sort({ year: 1, startDate: 1 });
+
+    if (isNaN(currentYear)) {
+      return res.status(400).json({ error: "Invalid year parameter" });
+    }
+
+    let image;
+    try {
+      image = await Image.find({});
+    } catch (err) {
+      console.error("Error fetching images:", err);
+      return res.status(500).json({ error: "Failed to fetch images" });
+    }
+
+    let holidays;
+    try {
+      holidays = await Holiday.find().sort({ year: 1, startDate: 1 });
+    } catch (err) {
+      console.error("Error fetching holidays:", err);
+      return res.status(500).json({ error: "Failed to fetch holidays" });
+    }
+
     const holidaysByYear = [];
     holidays.forEach((holiday) => {
-      const { year, holidayName, startDate, endDate, description, _id } =
-        holiday;
-      const img = image.find((elm) => elm.user_Id.equals(_id));
-      if (currentYear === year) {
-        holidaysByYear.push({
-          _id,
-          holidayName,
-          startDate,
-          endDate,
-          description,
-          image: img.path,
-        });
+      try {
+        const { year, holidayName, startDate, endDate, description, _id } = holiday;
+        const img = image.find((elm) => elm.user_Id.equals(_id));
+
+        if (currentYear === year) {
+          holidaysByYear.push({
+            _id,
+            holidayName,
+            startDate,
+            endDate,
+            description,
+            image: img ? img.path : null,
+          });
+        }
+      } catch (err) {
+        console.error("Error processing holiday:", err);
       }
     });
 
     res.status(200).json(holidaysByYear);
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Internal Server Error");
+    console.error("Unexpected error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
