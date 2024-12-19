@@ -15,6 +15,9 @@ const employeeSchema = new mongoose.Schema({
   email: {
     type: String,
   },
+  employeeSalary: {
+    type: Number,
+  },
   birthday: {
     type: Date,
   },
@@ -102,13 +105,25 @@ const employeeSchema = new mongoose.Schema({
     ifscCode: {
       type: String,
     },
-    panNo: {
-      type: String,
-    },
-    aadharCardNo: {
+    bankAccountName: {
       type: String,
     },
   },
+  identityInformation : {
+    panNo: {
+      type: String,
+    },
+    panName: {
+      type: String,
+    },
+    panAddress: {
+      type: String,
+    },
+    fatherName: {
+      type: String,
+    },
+  },
+  
   education: [
     {
       institution: {
