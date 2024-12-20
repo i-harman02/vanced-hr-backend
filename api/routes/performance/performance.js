@@ -7,10 +7,16 @@ const auth = require('../../helpers/auth')
 router.post("/add-performance",auth, async (req, res) => {
   try {
     const { employee, addedBy, projectName, comments, date } = req.body;
+  
+    // Find employee image, but it's optional
     const employeeImageId = await Image.findOne({ user_Id: employee });
+    const employeeImage = employeeImageId ? employeeImageId._id : null;  // Use null if not found
+  
+    // Find addedBy image, but it's optional
     const addedByImageId = await Image.findOne({ user_Id: addedBy });
-    const employeeImage = employeeImageId._id;
-    const addedByImage = addedByImageId._id;
+    const addedByImage = addedByImageId ? addedByImageId._id : null;  // Use null if not found
+  
+    // Create and save the performance comment
     const newComment = new Performance({
       employee,
       employeeImage,
@@ -20,12 +26,17 @@ router.post("/add-performance",auth, async (req, res) => {
       comments,
       date,
     });
+  
     await newComment.save();
     res.status(201).json({ message: "Performance added successfully" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Something went wrong" });
+    console.error("Error adding performance:", error);
+    res.status(500).json({ 
+      message: "Something went wrong while adding performance", 
+      error: error.message 
+    });
   }
+  
 });
 
 router.get("/all-performance",auth, async (req, res) => {

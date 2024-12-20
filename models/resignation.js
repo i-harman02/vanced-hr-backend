@@ -9,7 +9,6 @@ const resignationSchema = new mongoose.Schema({
   image: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Image",
-    required: true,
   },
   reason: {
     type: String,

@@ -7,22 +7,52 @@ const auth = require('../../helpers/auth')
 router.post("/add-resignation",auth, async (req, res) => {
   try {
     const { resignationEmployee, reason, resignedDate } = req.body;
-    const profile = await Image.findOne({
-      user_Id: resignationEmployee,
+  
+    // Validate input
+    if (!resignationEmployee || !reason || !resignedDate) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+  
+    // Check if a resignation already exists for the employee
+    const existingResignation = await Resignation.findOne({
+      resignationEmployee,
+      status: { $in: ["Approved", "Pending"] },
     });
-    const profileId = profile._id;
+    if (existingResignation) {
+      return res.status(409).json({
+        message: "Resignation entry already exists for this employee",
+        resignation: existingResignation, // Optional: Return the existing resignation
+      });
+    }
+  
+    // Attempt to find the employee profile (optional)
+    const profile = await Image.findOne({ user_Id: resignationEmployee });
+    const profileId = profile ? profile._id : null; // Handle case where profile is not found
+  
+    // Create a new resignation entry
     const newResignation = new Resignation({
       resignationEmployee,
-      image: profileId,
+      image: profileId, // May be null if no profile is found
       reason,
       resignedDate,
     });
+  
+    // Save the resignation
     await newResignation.save();
-    res.status(201).json({ message: "Resignation Added successfully" });
+    res.status(201).json({ message: "Resignation added successfully" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Something went wrong" });
+    // Log the error for debugging
+    console.error("Error adding resignation:", error);
+  
+    // Handle specific Mongoose validation errors
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ message: "Invalid data provided", details: error.errors });
+    }
+  
+    // Handle unexpected errors
+    res.status(500).json({ message: "An internal server error occurred" });
   }
+  
 });
 
 router.get("/resignation-details",auth, async (req, res) => {
