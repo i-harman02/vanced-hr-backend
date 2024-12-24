@@ -68,22 +68,32 @@ router.put("/update/:id", upload.single("image"), async (req, res) => {
     const userId = req.params.id;
     const imagePath = req.file ? req.file.path : null;
     const existingImage = await Image.findOne({ user_Id: userId });
-
+  
     // Delete existing image file if found
     if (existingImage && existingImage.path) {
-      fs.unlinkSync(existingImage.path); // Delete the existing image file
+      try {
+        // Check if the file exists before trying to delete it
+        if (fs.existsSync(existingImage.path)) {
+          fs.unlinkSync(existingImage.path); // Delete the existing image file
+        } else {
+          console.warn(`File not found: ${existingImage.path}`);
+        }
+      } catch (err) {
+        console.error(`Error deleting file: ${existingImage.path}`, err);
+        return res.status(500).send("Error deleting existing image file");
+      }
     }
-
+  
     // Update the image path in the database
     await Image.findOneAndUpdate(
       { user_Id: userId },
       { path: imagePath },
       { new: true, upsert: true }
     );
-
+  
     res.status(200).send("Image updated successfully!");
   } catch (error) {
-    console.error(error);
+    console.error("Error during image update process:", error);
     res.status(500).send("Internal Server Error");
   }
 });

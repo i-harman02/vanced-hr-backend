@@ -134,7 +134,10 @@ router.put("/employee-status/:id",auth, async (req, res) => {
 router.get("/list",auth, async (req, res) => {
   try {
     const usersImg = await Image.find({});
-    const users = await Employee.find({}, { password: 0 });
+    const users = await Employee.find(
+      { role: { $ne: "admin" } },
+      { password: 0 } 
+    );
     const employee = users.map(async (val, idx) => {
       const user_Id = val._id;
       const employeeImg = usersImg.find((elm) => elm.user_Id.equals(user_Id));
@@ -174,41 +177,49 @@ router.delete("/delete/:id",auth, async (req, res) => {
     if (!id) {
       return res.status(400).send({ message: "Employee ID is required!" });
     }
-    await Promise.all([
-      Leaves.deleteMany({ employee: id }), 
-      Performances.deleteMany({ employee: id }), 
-      Promotion.deleteMany({ promotedEmployee: id }), 
-      Resignation.deleteMany({ resignationEmployee: id }), 
-      Termination.deleteMany({ terminatedEmployee: id }),
-      Teams.updateMany(
-        {
-          $or: [
-            { "teamLeader.id": id }, 
-            { "teamMember.id": id }, 
-          ],
-        },
-        {
-          $pull: { 
-            "teamLeader.id": id, 
-            "teamMember.id": { $in: [id] }, 
-          },
-        }
-      ),
-      Announcement.deleteMany({employee : id}),
-      Comments.deleteMany({employee : id }),
+    // await Promise.all([
+    //   Leaves.deleteMany({ employee: id }), 
+    //   Performances.deleteMany({ employee: id }), 
+    //   Promotion.deleteMany({ promotedEmployee: id }), 
+    //   Resignation.deleteMany({ resignationEmployee: id }), 
+    //   Termination.deleteMany({ terminatedEmployee: id }),
+    //   Teams.updateMany(
+    //     {
+    //       $or: [
+    //         { "teamLeader.id": id }, 
+    //         { "teamMember.id": id }, 
+    //       ],
+    //     },
+    //     {
+    //       $pull: { 
+    //         "teamLeader.id": id, 
+    //         "teamMember.id": { $in: [id] }, 
+    //       },
+    //     }
+    //   ),
+    //   Announcement.deleteMany({employee : id}),
+    //   Comments.deleteMany({employee : id }),
 
-    ]);
-    await Teams.deleteMany({
-      $or: [
-        { "teamLeader.id": { $exists: false } },  
-        // { "teamMember.id": { $size: 0 } },  // No members
-      ],
-    });
-    const deleted = await Employee.deleteOne({ _id: id });
-    await removeImage(id);
+    // ]);
+    // await Teams.deleteMany({
+    //   $or: [
+    //     { "teamLeader.id": { $exists: false } },  
+    //     // { "teamMember.id": { $size: 0 } },  // No members
+    //   ],
+    // });
+    // const deleted = await Employee.deleteOne({ _id: id });
+    // await removeImage(id);
+
+    const updatedFields = { status: "Inactive" };
+    await Employee.findByIdAndUpdate(
+      { _id: id },
+      { $set: updatedFields },
+      { new: true, upsert: true }
+    );
+
     res
       .status(200)
-      .send({ message: "Employee deleted successfully!", deleted });
+      .send({ message: "Employee deleted successfully!", });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });
