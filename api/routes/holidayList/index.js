@@ -7,7 +7,7 @@ const removeImage = require("../../helpers/deleteImage/deleteImage");
 
 router.post("/list", auth, async (req, res) => {
   try {
-    const { holidayName, year, startDate, endDate, description } = req.body;
+    const { holidayName, year, startDate, endDate, description, image } = req.body;
 
     const newHoliday = new Holiday({
       holidayName,
@@ -15,6 +15,7 @@ router.post("/list", auth, async (req, res) => {
       startDate,
       endDate,
       description,
+      image
     });
     const holiday = await newHoliday.save();
     res
@@ -35,14 +36,6 @@ router.get("/get-list/:year", auth, async (req, res) => {
       return res.status(400).json({ error: "Invalid year parameter" });
     }
 
-    let image;
-    try {
-      image = await Image.find({});
-    } catch (err) {
-      console.error("Error fetching images:", err);
-      return res.status(500).json({ error: "Failed to fetch images" });
-    }
-
     let holidays;
     try {
       holidays = await Holiday.find().sort({ year: 1, startDate: 1 });
@@ -54,8 +47,7 @@ router.get("/get-list/:year", auth, async (req, res) => {
     const holidaysByYear = [];
     holidays.forEach((holiday) => {
       try {
-        const { year, holidayName, startDate, endDate, description, _id } = holiday;
-        const img = image.find((elm) => elm.user_Id.equals(_id));
+        const { year, holidayName, startDate, endDate, description, _id,  image } = holiday;
 
         if (currentYear === year) {
           holidaysByYear.push({
@@ -64,7 +56,7 @@ router.get("/get-list/:year", auth, async (req, res) => {
             startDate,
             endDate,
             description,
-            image: img ? img.path : null,
+            image: image ? image : null,
           });
         }
       } catch (err) {

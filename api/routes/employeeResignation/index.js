@@ -60,11 +60,6 @@ router.get("/resignation-details",auth, async (req, res) => {
     const resignationDetails = await Resignation.find({})
       .populate({
         path: "resignationEmployee",
-        select: "userName designation employeeId firstName lastName email",
-      })
-      .populate({
-        path: "image",
-        select: "path",
       });
     res.status(200).json(resignationDetails);
   } catch (error) {
@@ -80,12 +75,7 @@ router.get("/resignation-details/:id",auth, async (req, res) => {
       resignationEmployee: userId,
     })
       .populate({
-        path: "resignationEmployee",
-        select: "userName designation employeeId firstName lastName email",
-      })
-      .populate({
-        path: "image",
-        select: "path",
+        path: "resignationEmployee"
       });
     res.status(200).json(resignationDetails);
   } catch (error) {

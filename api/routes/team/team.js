@@ -23,20 +23,12 @@ router.get("/my-team/:id",auth, async (req, res) => {
       .populate({
         path: "teamLeader.id",
         select:
-          "userName designation employeeId firstName lastName email personalInformation.telephones",
-      })
-      .populate({
-        path: "teamLeader.image",
-        select: "path",
+          "userName designation employeeId firstName lastName email personalInformation.telephones profileImage",
       })
       .populate({
         path: "teamMember.id",
         select:
-          "userName designation employeeId firstName lastName email personalInformation.telephones",
-      })
-      .populate({
-        path: "teamMember.image",
-        select: "path",
+          "userName designation employeeId firstName lastName email personalInformation.telephones profileImage",
       });
     res.status(200).json(teams);
   } catch (error) {
@@ -50,21 +42,15 @@ router.get("/all-team",auth, async (req, res) => {
     const users = await Team.find({})
       .populate({
         path: "teamLeader.id",
-        select:
-          "userName designation employeeId firstName lastName email personalInformation.telephones",
       })
       .populate({
         path: "teamLeader.image",
-        select: "path",
       })
       .populate({
         path: "teamMember.id",
-        select:
-          "userName designation employeeId firstName lastName email personalInformation.telephones",
       })
       .populate({
         path: "teamMember.image",
-        select: "path",
       });
     res.status(200).json(users);
   } catch (error) {

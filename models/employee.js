@@ -1,11 +1,6 @@
 const mongoose = require("mongoose");
 
 const employeeSchema = new mongoose.Schema({
-  userName: {
-    type: String,
-    required: true,
-    unique: true,
-  },
   password: {
     type: String,
   },
@@ -42,6 +37,9 @@ const employeeSchema = new mongoose.Schema({
     required: true,
   },
   lastName: {
+    type: String,
+  },
+  profileImage: {
     type: String,
   },
   status: {

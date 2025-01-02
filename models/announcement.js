@@ -9,15 +9,12 @@ const announcementSchema = new mongoose.Schema({
   image: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Image",
-    required: true,
   },
   title: {
     type: String,
-    require: true,
   },
   description: {
     type: String,
-    require: true,
   },
   date: {
     type: Date,

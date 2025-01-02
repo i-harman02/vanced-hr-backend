@@ -8,14 +8,10 @@ const auth = require('../../helpers/auth')
 router.post("/add-promotion",auth, async (req, res) => {
   try {
     const { promotedEmployee, from, to, startDate, promotionDate } = req.body;
-    const profile = await Image.findOne({
-      user_Id: promotedEmployee,
-    });
-    const profileId = profile._id;
+
     const updatedFields = { designation: to };
     const newPromotion = new Promotion({
       promotedEmployee,
-      image: profileId,
       from,
       to,
       startDate,
@@ -41,11 +37,6 @@ router.get("/details",auth, async (req, res) => {
     const promotionDetails = await Promotion.find({ })
       .populate({
         path: "promotedEmployee",
-        select: "userName designation employeeId firstName lastName email",
-      })
-      .populate({
-        path: "image",
-        select: "path",
       });
     res.status(200).json(promotionDetails);
   } catch (error) {

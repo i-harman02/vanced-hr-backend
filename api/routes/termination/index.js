@@ -8,13 +8,8 @@ const auth = require('../../helpers/auth')
 router.post("/add-termination",auth, async (req, res) => {
   try {
     const { terminatedEmployee, reason, terminatedDate } = req.body;
-    const profile = await Image.findOne({
-      user_Id: terminatedEmployee,
-    });
-    const profileId = profile._id;
     const newTermination = new Termination({
       terminatedEmployee,
-      image: profileId,
       reason,
       terminatedDate,
     });
@@ -31,11 +26,6 @@ router.get("/details",auth, async (req, res) => {
     const terminationDetails = await Termination.find({})
       .populate({
         path: "terminatedEmployee",
-        select: "userName designation employeeId firstName lastName email",
-      })
-      .populate({
-        path: "image",
-        select: "path",
       });
     res.status(200).json(terminationDetails);
   } catch (error) {

@@ -21,6 +21,9 @@ const holidaySchema = new mongoose.Schema({
     type: String,
     required: false,
   },
+  image: {
+    type: String,
+  },
 });
 
 const Holiday = mongoose.model("Holiday", holidaySchema);

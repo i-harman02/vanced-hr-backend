@@ -11,11 +11,9 @@ const calculateShortLeave = require("../../helpers/calculateShortLeaves");
 router.post("/apply-leave", auth, async (req, res) => {
   try {
     const {
-      //userName,
       employee,
       startDate,
       endDate,
-      //designation,
       leaveType,
       noOfDays,
       reason,
@@ -33,10 +31,6 @@ router.post("/apply-leave", auth, async (req, res) => {
       startDate: { $lte: endDate },
       endDate: { $gte: startDate },
     });
-    const profile = await Image.findOne({
-      user_Id: employee,
-    });
-    const profileId = profile?._id;
     if (overlappingLeaveRequest) {
       return res
         .status(400)
@@ -44,12 +38,9 @@ router.post("/apply-leave", auth, async (req, res) => {
     }
 
     const newLeave = new Leaves({
-      //userName,
       employee,
-      image: profileId,
       startDate,
       endDate,
-      //designation,
       leaveType,
       noOfDays,
       reason,
@@ -93,15 +84,10 @@ router.get("/on-leave", auth, async (req, res) => {
     const employeesOnLeaveToday = await Leaves.find({
       startDate: { $lte: today },
       endDate: { $gte: today },
-    })
-      .populate({
-        path: "image",
-        select: "path",
-      })
-      .populate({
+    }).populate({
         path: "employee",
         select:
-          "userName designation employeeId firstName lastName email personalInformation.telephones address",
+          "userName designation employeeId firstName lastName email personalInformation.telephones address profileImage",
       });
 
     res.status(200).json(employeesOnLeaveToday);
@@ -232,14 +218,11 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
     const leaveData = await Leaves.find({
       employee: userId,
     })
-      .populate({
-        path: "approvedBy.employerImage",
-        select: "path",
-      })
-      .populate({
-        path: "approvedBy.employer",
-        select: "userName designation employeeId firstName lastName",
-      });
+      .populate("employee")
+      .populate("approvedBy");
+
+
+
     const leavesByYear = leaveData.filter((leave) => {
       const leaveYear = new Date(leave.startDate).getFullYear();
       return leaveYear;
@@ -481,53 +464,55 @@ router.get("/requested/:id", auth, async (req, res) => {
 
 router.get("/all-requested-leaves", auth, async (req, res) => {
   try {
+
+    // Fetch leave data with the necessary population
     const leaveData = await Leaves.find({})
-      .populate({
-        path: "employee",
-        select: "userName designation employeeId firstName lastName",
-      })
-      .populate({
-        path: "approvedBy.employer",
-        select: "userName designation employeeId firstName lastName",
-      })
-      .populate({
-        path: "approvedBy.employerImage",
-        select: "path",
-      })
-      .populate({
-        path: "image",
-        select: "path",
-      });
+      .populate("employee")
+      .populate("approvedBy");
     res.status(200).json(leaveData);
   } catch (error) {
-    console.error(error);
+    console.error("Error:", error);
     res.status(500).send("Internal Server Error");
   }
+
+
 });
 
 router.put("/status-update", auth, async (req, res) => {
   try {
-    const userId = req.body.id;
-    const employerId = req.body.employerId;
-    const status = req.body.status;
-    const profile = await Image.findOne({
-      user_Id: employerId,
-    });
-    const profileId = profile._id;
+    const { id: userId, employerId, status } = req.body;
+
+    if (!userId || !employerId || !status) {
+      return res.status(400).json({ message: "Missing required fields." });
+    }
+
     const updatedFields = {
       status,
-      approvedBy: { employer: employerId, employerImage: profileId },
+      approvedBy: employerId,
     };
-    await Leaves.findOneAndUpdate(
+
+    const updatedLeave = await Leaves.findOneAndUpdate(
       { _id: userId },
       { $set: updatedFields },
-      { new: true, upsert: true }
+      { new: true, upsert: false } // Upsert set to false for safety
     );
-    res.status(200).send({ message: "Leave updated successfully!" });
+
+    if (!updatedLeave) {
+      return res.status(404).json({ message: "Leave record not found." });
+    }
+
+    res.status(200).json({ message: "Leave updated successfully!", leave: updatedLeave });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Internal Server Error");
+    console.error("Error updating leave:", error);
+
+    // Specific error handling for validation errors, database issues, etc.
+    if (error.name === "CastError") {
+      return res.status(400).json({ message: "Invalid Leave ID format." });
+    }
+
+    res.status(500).json({ message: "Internal Server Error" });
   }
+
 });
 router.delete("/delete-leave/:id", auth, async (req, res) => {
   try {
@@ -542,7 +527,7 @@ router.delete("/delete-leave/:id", auth, async (req, res) => {
 
 router.put("/update-leave", auth, async (req, res) => {
   try {
-    const updatedFields = { ...req.body, status: "Pending", approvedBy: {} };
+    const updatedFields = { ...req.body, status: "Pending", approvedBy: null };
 
     const overlappingLeaveRequest = await Leaves.findOne({
       employee: req.body.employee,
@@ -550,22 +535,26 @@ router.put("/update-leave", auth, async (req, res) => {
       startDate: { $lte: req.body.endDate },
       endDate: { $gte: req.body.startDate },
     });
+
     if (overlappingLeaveRequest) {
       return res
         .status(400)
         .json({ message: "Leave request overlaps with existing leave" });
     }
+
     await Leaves.findByIdAndUpdate(
-      { _id: req.body.id },
+      req.body.id, // Pass the ID directly here
       { $set: updatedFields },
       { new: true, upsert: true }
     );
+
     res.status(200).send({ message: "Leave detail updated successfully!" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });
   }
 });
+
 
 router.get("/today-stats", auth, async (req, res) => {
   try {

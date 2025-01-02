@@ -16,6 +16,7 @@ router.post("/add-details", auth, async (req, res) => {
       rate,
       priority,
       currentStatus,
+      image
     } = req.body;
 
     const newProject = new Projects({
@@ -28,6 +29,7 @@ router.post("/add-details", auth, async (req, res) => {
       rate,
       priority,
       currentStatus,
+      image
     });
     await newProject.save();
     res
@@ -41,36 +43,21 @@ router.post("/add-details", auth, async (req, res) => {
 
 router.get("/all-project", auth, async (req, res) => {
   try {
-    const Images = await Image.find({});
     const projects = await Projects.find({})
       .populate({
         path: "team",
-        select: "teamLeader teamMember projectName status createdAt",
         populate: {
           path: "teamLeader.id teamMember.id teamLeader.image teamMember.image",
-          select: "userName email  firstName lastName path",
         },
       })
       .populate({
         path: "client.id",
-        select: "userName mail organization firstName lastName",
       })
       .populate({
         path: "client.image",
-        select: "path",
       });
 
-    const project = projects.map(async (val) => {
-      const project_Id = val._id;
-      const projectImg = Images.find((elm) => elm.user_Id.equals(project_Id));
-      const projectImage = projectImg
-        ? { path: projectImg.path, id: projectImg.id }
-        : "";
-      return { ...val._doc, projectImage };
-    });
-
-    const projectsList = await Promise.all(project);
-    res.status(200).json(projectsList);
+    res.status(200).json(projects);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");

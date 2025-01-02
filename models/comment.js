@@ -6,11 +6,6 @@ const commentSchema = new mongoose.Schema({
     ref: "Employee",
     required: true,
   },
-  image: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Image",
-    required: true,
-  },
   text: {
     type: String,
     require: true,

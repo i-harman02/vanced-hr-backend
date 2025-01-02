@@ -6,18 +6,10 @@ const performanceSchema = new mongoose.Schema({
     ref: "Employee",
     required: true,
   },
-  employeeImage: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Image",
-  },
   addedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Employee",
     required: true,
-  },
-  addedByImage: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Image",
   },
   projectName: {
     type: mongoose.Schema.Types.ObjectId,

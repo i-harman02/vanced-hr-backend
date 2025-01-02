@@ -24,11 +24,10 @@ const saltRounds = 10;
 router.post("/add-employee", async (req, res) => {
   try {
     const {
-      userName,
-      status,
-      password,
-      role,
       email,
+      password,
+      status,
+      role,
       birthday,
       designation,
       appraisalDate,
@@ -42,7 +41,14 @@ router.post("/add-employee", async (req, res) => {
       bankInformation,
       education,
       experience,
+      employeeSalary,
+      profileImage,
     } = req.body;
+
+    // Validate required fields
+    if (!email || !password || !firstName || !lastName) {
+      return res.status(400).json({ message: "Required fields are missing" });
+    }
 
     // Check if email already exists
     const existingEmail = await Employee.findOne({ email });
@@ -52,15 +58,17 @@ router.post("/add-employee", async (req, res) => {
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-    const result = email.substring(0, email.indexOf("@"));
-    const empId = `${result}${"@vanced"}`;
+
+    // Generate unique employee ID
+    const usernamePart = email.split("@")[0];
+    const empId = `${usernamePart}@vanced`;
+
     // Create a new user
     const newUser = new Employee({
-      userName,
+      email,
       password: hashedPassword,
       status,
       role,
-      email,
       birthday,
       designation,
       appraisalDate,
@@ -75,25 +83,24 @@ router.post("/add-employee", async (req, res) => {
       bankInformation,
       education,
       experience,
+      employeeSalary,
+      profileImage,
     });
-    await newUser.save();
 
-    // Generate JWT token
-    // const token = jwt.sign({ userId: newUser._id }, JWT_SECRET, {
-    //   expiresIn: "1h",
-    // });
+    // Save the new user to the database
+    await newUser.save();
 
     res.status(201).json({
       message: "Employee registered successfully",
       userId: newUser._id,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Something went wrong" });
+    console.error("Error during employee registration:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
-router.put("/update-employee",auth, async (req, res) => {
+router.put("/update-employee", auth, async (req, res) => {
   try {
     const password = req?.body?.password;
     const hashedPassword = password
@@ -115,7 +122,7 @@ router.put("/update-employee",auth, async (req, res) => {
   }
 });
 
-router.put("/employee-status/:id",auth, async (req, res) => {
+router.put("/employee-status/:id", auth, async (req, res) => {
   try {
     const userId = req.params.id;
     const updatedFields = { status: "Inactive" };
@@ -131,7 +138,7 @@ router.put("/employee-status/:id",auth, async (req, res) => {
   }
 });
 
-router.get("/list",auth, async (req, res) => {
+router.get("/list", auth, async (req, res) => {
   try {
     const usersImg = await Image.find({});
     const users = await Employee.find({}, { password: 0 });
@@ -149,7 +156,7 @@ router.get("/list",auth, async (req, res) => {
     res.status(500).json({ message: "Something went wrong" });
   }
 });
-router.get("/active-user",auth, async (req, res) => {
+router.get("/active-user", auth, async (req, res) => {
   try {
     const usersImg = await Image.find({});
     const users = await Employee.find({ status: "Active" }, { password: 0 });
@@ -168,7 +175,7 @@ router.get("/active-user",auth, async (req, res) => {
   }
 });
 
-router.delete("/delete/:id",auth, async (req, res) => {
+router.delete("/delete/:id", auth, async (req, res) => {
   try {
     const { id } = req.params;
     if (!id) {

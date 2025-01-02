@@ -6,10 +6,6 @@ const onLeaveTodaySchema = new mongoose.Schema({
     ref: "Employee",
     required: true,
   },
-  image: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Image",
-  },
   startDate: {
     type: Date,
     required: true,
@@ -44,14 +40,8 @@ const onLeaveTodaySchema = new mongoose.Schema({
     },
   ],
   approvedBy: {
-    employer: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Employee",
-    },
-    employerImage: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Image",
-    },
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Employee",
   },
   status: {
     type: String,

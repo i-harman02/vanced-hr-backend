@@ -7,21 +7,9 @@ const auth = require('../../helpers/auth')
 router.post("/add-performance",auth, async (req, res) => {
   try {
     const { employee, addedBy, projectName, comments, date } = req.body;
-  
-    // Find employee image, but it's optional
-    const employeeImageId = await Image.findOne({ user_Id: employee });
-    const employeeImage = employeeImageId ? employeeImageId._id : null;  // Use null if not found
-  
-    // Find addedBy image, but it's optional
-    const addedByImageId = await Image.findOne({ user_Id: addedBy });
-    const addedByImage = addedByImageId ? addedByImageId._id : null;  // Use null if not found
-  
-    // Create and save the performance comment
     const newComment = new Performance({
       employee,
-      employeeImage,
       addedBy,
-      addedByImage,
       projectName,
       comments,
       date,
@@ -44,19 +32,11 @@ router.get("/all-performance",auth, async (req, res) => {
     const feedback = await Performance.find({})
       .populate({
         path: "employee",
-        select: "userName designation employeeId firstName lastName",
-      })
-      .populate({
-        path: "employeeImage",
-        select: "path",
+        select: "userName designation employeeId firstName lastName profileImage",
       })
       .populate({
         path: "addedBy",
-        select: "userName designation employeeId firstName lastName",
-      })
-      .populate({
-        path: "addedByImage",
-        select: "path",
+        select: "userName designation employeeId firstName lastName profileImage",
       })
       .populate({
         path: "projectName",
@@ -75,19 +55,11 @@ router.get("/employee-performance/:id",auth, async (req, res) => {
     const feedback = await Performance.find({ employee: id })
       .populate({
         path: "employee",
-        select: "userName designation employeeId firstName lastName",
-      })
-      .populate({
-        path: "employeeImage",
-        select: "path",
+        select: "userName designation employeeId firstName lastName profileImage",
       })
       .populate({
         path: "addedBy",
-        select: "userName designation employeeId firstName lastName",
-      })
-      .populate({
-        path: "addedByImage",
-        select: "path",
+        select: "userName designation employeeId firstName lastName profileImage",
       })
       .populate({
         path: "projectName",

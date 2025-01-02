@@ -19,6 +19,7 @@ router.post("/add-client",auth, async (req, res) => {
       contactNumber,
       firstName,
       lastName,
+      image
     } = req.body;
     const existingEmail = await Client.findOne({ mail });
     if (existingEmail) {
@@ -36,6 +37,7 @@ router.post("/add-client",auth, async (req, res) => {
       contactNumber,
       firstName,
       lastName,
+      image
     });
     await newClient.save();
     res
@@ -49,16 +51,8 @@ router.post("/add-client",auth, async (req, res) => {
 
 router.get("/detail",auth, async (req, res) => {
   try {
-    const usersImg = await Image.find({});
     const client = await Client.find({});
-    const clientDetail = client.map(async (val, idx) => {
-      const user_Id = val._id;
-      const clientImg = usersImg.find((elm) => elm.user_Id.equals(user_Id));
-      const image = clientImg ? { path: clientImg.path, id: clientImg.id } : "";
-      return { ...val._doc, image };
-    });
-    const clientDetails = await Promise.all(clientDetail);
-    res.status(200).json(clientDetails);
+    res.status(200).json(client);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });

@@ -6,13 +6,12 @@ const auth = require('../../helpers/auth')
 
 router.post("/post",auth, async (req, res) => {
   try {
-    const { employee, image, text, id } = req.body;
-    if (!employee || !image || !text) {
+    const { employee, text, id } = req.body;
+    if (!employee || !text) {
       return res.status(400).json({ message: "Bad Request" });
     }
     const newComment = new Comment({
       employee,
-      image,
       text,
     });
     await newComment.save();
@@ -70,8 +69,8 @@ router.post("/like-post",auth, async (req, res) => {
   try {
 
     // imageId and employeeId
-    const { employee, image, id } = req.body;
-    if (!employee || !image) {
+    const { employee,  id } = req.body;
+    if (!employee) {
       return res.status(400).json({ message: "Bad Request" });
     }
     const announcement = await Announcement.findById(id);
@@ -85,7 +84,7 @@ router.post("/like-post",auth, async (req, res) => {
     if (!existingLike) {
       await Announcement.findByIdAndUpdate(
         id,
-        { $push: { likes: { employee, image } } },
+        { $push: { likes: { employee } } },
         { new: true }
       );
       res.status(200).json({ message: "Like added" });

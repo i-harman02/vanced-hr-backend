@@ -32,6 +32,7 @@ router.get("/new-employee",auth, async (req, res) => {
           $gte: new Date(startDate),
           $lte: new Date(endDate),
         },
+        role: { $ne: "admin" },
       },
       { password: 0 }
     );

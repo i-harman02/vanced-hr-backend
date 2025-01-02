@@ -6,11 +6,6 @@ const terminationSchema = new mongoose.Schema({
     ref: "Employee",
     required: true,
   },
-  image: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Image",
-    required: true,
-  },
   reason: {
     type: String,
   },

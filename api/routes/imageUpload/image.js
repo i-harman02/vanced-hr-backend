@@ -6,41 +6,31 @@ const Image = require("../../../models/image");
 const path = require("path");
 const removeImage = require("../../helpers/deleteImage/deleteImage");
 
+// Configure storage
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // Directory where files will be stored
   },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname);
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
 
-const upload = multer({ storage: storage });
+// Initialize multer
+const upload = multer({ storage });
 
 // Upload image
-router.post("/upload/:id", upload.single("image"), async (req, res) => {
+router.post("/upload", upload.single("image"), async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).send({ message: 'No file uploaded' });
+    }
+
     const imagePath = req.file.path;
-    // const userId = req.params.id;
-    // const existingUser = await Image.findOne({ user_Id: userId });
-
-    // if (existingUser) {
-    //   fs.unlinkSync(imagePath);
-    //   return res
-    //     .status(409)
-    //     .json({ message: "Image already exists for this user" });
-    // }
-
-    const image = new Image({
-      user_Id: req.params.id,
-      path: imagePath,
-    });
-
-    await image.save();
-    res.status(201).send({ message: "Image uploaded successfully!" });
+    res.status(200).send({ message: 'Image uploaded successfully!', imagePath });
   } catch (error) {
     console.error(error);
-    res.status(500).send("Internal Server Error");
+    res.status(500).send('Internal Server Error');
   }
 });
 

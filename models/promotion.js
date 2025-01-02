@@ -6,11 +6,6 @@ const promotionSchema = new mongoose.Schema({
     ref: "Employee",
     required: true,
   },
-  image: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Image",
-    required: true,
-  },
   from: {
     type: String,
     required: true,
