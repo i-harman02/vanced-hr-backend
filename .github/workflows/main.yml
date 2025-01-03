@@ -21,42 +21,30 @@ jobs:
     - name: Install Dependencies
       run: npm install
 
-    - name: Clone Repository to Specific Directory
-      run: |
-        # Clone the repository to /var/www/html/vanced-hr-api
-        git clone https://github.com/satnamsinghvanced/vanced-hr-api.git /var/www/html/vanced-hr-api
-        
-        # Navigate to the directory where the repo is cloned
-        cd /var/www/html/vanced-hr-api
-
-        # Configure git to use the GitHub token for authentication
-        git config --global url."https://x-access-token:${{ secrets.GH_TOKEN }}@github.com".insteadOf "https://github.com"
-
-        # Install dependencies
-        npm install
-
-    - name: Install PM2
-      run: npm install pm2 -g
-
-    - name: SSH into Server and Deploy
+    - name: SSH into Server and Pull Latest Changes
       env:
         SERVER_USER: ${{ secrets.SERVER_USER }}
         SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
         SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}  # Store your GitHub token in secrets
       run: |
+        # SSH into the server and pull the latest changes using the GitHub token for authentication
         sshpass -p "${{ secrets.SERVER_PASSWORD }}" ssh -o StrictHostKeyChecking=no "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" << EOF
-          # Go to your app directory
+          # Navigate to the app directory
           cd /var/www/html/vanced-hr-api
-
-          # Pull latest changes from the repository
+          
+          # Configure Git to use the token for authentication
+          git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/satnamsinghvanced/vanced-hr-api
+          
+          # Pull latest changes from the GitHub repository
           git pull origin main
-
+          
           # Install dependencies
           npm install
-
-          # Restart the app using PM2
-          pm2 stop all || true
-          pm2 start 0  # Replace with your entry file name
-          pm2 save
+          
+          # Restart the app with PM2
+          pm2 stop all || true  # Stop any existing PM2 processes
+          pm2 start 0  # Replace with your entry file name (e.g., app.js or server.js)
+          pm2 save  # Save the PM2 process list
           pm2 startup systemd  # Set PM2 to start on boot (optional)
         EOF
