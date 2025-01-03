@@ -7,8 +7,7 @@ const announcementSchema = new mongoose.Schema({
     required: true,
   },
   image: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Image",
+    type: String,
   },
   title: {
     type: String,
