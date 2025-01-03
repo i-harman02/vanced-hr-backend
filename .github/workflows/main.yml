@@ -1,0 +1,46 @@
+name: Node.js CI/CD with PM2
+
+on:
+  push:
+    branches:
+      - main  # Trigger the workflow on push to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout the code
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    # Set up Node.js
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'  # Set the Node.js version (change if needed)
+
+    # Install dependencies
+    - name: Install Dependencies
+      run: npm install
+
+    # Install PM2 globally
+    - name: Install PM2
+      run: npm install -g pm2
+
+    # Deploy the app (build and restart PM2 process)
+    - name: Deploy with PM2
+      env:
+        HOST: ${{ secrets.SERVER_HOST }}
+        USER: ${{ secrets.SERVER_USER }}
+        PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+      run: |
+        sshpass -p "${{ secrets.SERVER_PASSWORD }}" scp -r ./* "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/var/www/html/vanced-hr-api"  # Modify path as needed
+        sshpass -p "${{ secrets.SERVER_PASSWORD }}" ssh -o StrictHostKeyChecking=no "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" << 'EOF'
+          cd /var/www/html/vanced-hr-api  # Go to the app directory
+          npm install  # Install dependencies on the server
+          pm2 stop all || true  # Stop any running PM2 processes
+          pm2 start 0  # Start the app with PM2 (adjust entry file name)
+          pm2 save  # Save the PM2 process list
+          pm2 startup systemd  # Set PM2 to start on boot (optional)
+        EOF
