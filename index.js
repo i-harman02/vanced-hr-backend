@@ -15,7 +15,7 @@ app.use(express.json());
 require("./db/connection");
 
 app.get("/api/testing", async (req, res) => {
-  res.send("Working 0.3");
+  res.send("Working 0.4");
 });
 
 // Authentication routes
