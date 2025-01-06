@@ -8,12 +8,13 @@ const auth = require('../../helpers/auth')
 
 router.post("/add", auth, async (req, res) => {
   try {
-    const { employee, title, description, image } = req.body;
+    const { employee, title, description, image, postType } = req.body;
 
     const newAnnouncement = new Announcement({
       employee,
       image,
       description,
+      postType
     });
 
     await newAnnouncement.save();
@@ -28,10 +29,15 @@ router.post("/add", auth, async (req, res) => {
 
 });
 
-router.get("/list", auth, async (req, res) => {
+router.get("/list/:postType", auth, async (req, res) => {
   try {
-    const usersImg = await Image.find({});
-    const announcement = await Announcement.find({})
+    let { postType } = req.params;
+    postType = Number(postType);
+    if (isNaN(postType)) {
+      return res.status(400).json({ message: "Invalid postType value" });
+    }
+  
+    const announcement = await Announcement.find({ postType })
       .populate({
         path: "employee",
       })
@@ -45,12 +51,13 @@ router.get("/list", auth, async (req, res) => {
         },
         select: "text date",
       });
-
+  
     res.status(200).json(announcement);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });
   }
+  
 
 });
 
