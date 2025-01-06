@@ -79,18 +79,34 @@ router.delete("/delete/:id", auth, async (req, res) => {
 });
 router.put("/update-announcement", auth, async (req, res) => {
   try {
-    const announcementId = req.body.id;
-    const updatedFields = req.body;
-    await Announcement.findOneAndUpdate(
+    const { announcementId, ...updatedFields } = req.body;
+
+    if (!announcementId) {
+      return res.status(400).json({ message: "Announcement ID is required" });
+    }
+
+    const announcementRes = await Announcement.findOneAndUpdate(
       { _id: announcementId },
       { $set: updatedFields },
-      { new: true, upsert: true }
+      { new: true, upsert: false } // upsert false to avoid creating a new document if not found
     );
-    res.status(200).send("announcement updated successfully!");
+
+    if (!announcementRes) {
+      return res.status(404).json({ message: "Announcement not found" });
+    }
+
+    res.status(200).json({
+      message: "Announcement updated successfully!",
+      data: announcementRes,
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Internal Server Error");
+    console.error("Error updating announcement:", error);
+    res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
   }
 });
+
 
 module.exports = router;

@@ -7,7 +7,6 @@ const auth = require('../../helpers/auth')
 router.get("/details",auth, async (req, res) => {
   try {
     const currentYear = new Date().getFullYear();
-    const usersImg = await Image.find({});
     const employees = await Employee.aggregate([
       {
         $project: {
@@ -16,6 +15,7 @@ router.get("/details",auth, async (req, res) => {
           birthday: 1,
           userName: 1,
           status: 1,
+          profileImage: 1,
           month: { $month: "$birthday" },
           day: { $dayOfMonth: "$birthday" },
         },
@@ -37,11 +37,6 @@ router.get("/details",auth, async (req, res) => {
     var today = new Date();
     today.setHours(0, 0, 0, 0);
     employees.forEach((employee) => {
-      const user_Id = employee._id;
-      const employeeImg = usersImg.find((elm) => elm.user_Id.equals(user_Id));
-      const image = employeeImg
-        ? { path: employeeImg.path, id: employeeImg.id }
-        : "";
       const birthDate = new Date(employee.birthday);
       birthDate.setFullYear(currentYear);
       const nextBirthDate = new Date(employee.birthday);
@@ -61,7 +56,6 @@ router.get("/details",auth, async (req, res) => {
             thisYear: date,
             original: employee.birthday,
           },
-          image,
         });
       } else {
         for (let i = 0; i < 7; i++) {
@@ -79,7 +73,6 @@ router.get("/details",auth, async (req, res) => {
                 thisYear: date,
                 original: employee.birthday,
               },
-              image,
             });
           }
         }
