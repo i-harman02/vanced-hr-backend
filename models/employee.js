@@ -7,6 +7,12 @@ const employeeSchema = new mongoose.Schema({
   role: {
     type: String,
   },
+  superAdmin: {
+    type: Boolean,
+  },
+  assignRole: {
+    type: String,
+  },
   email: {
     type: String,
   },

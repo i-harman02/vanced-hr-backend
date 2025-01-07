@@ -23,73 +23,33 @@ const saltRounds = 10;
 
 router.post("/add-employee", async (req, res) => {
   try {
-    const {
-      email,
-      password,
-      status,
-      role,
-      birthday,
-      designation,
-      appraisalDate,
-      address,
-      gender,
-      dateOfJoining,
-      firstName,
-      lastName,
-      personalInformation,
-      emergencyContact,
-      bankInformation,
-      education,
-      experience,
-      employeeSalary,
-      profileImage,
-    } = req.body;
-
+    const { email, password, firstName, lastName, role } = req.body;
+  
     // Validate required fields
     if (!email || !password || !firstName || !lastName) {
       return res.status(400).json({ message: "Required fields are missing" });
     }
-
+  
     // Check if email already exists
     const existingEmail = await Employee.findOne({ email });
     if (existingEmail) {
       return res.status(409).json({ message: "Email already exists" });
     }
-
+  
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-
+  
     // Generate unique employee ID
-    const usernamePart = email.split("@")[0];
-    const empId = `${usernamePart}@vanced`;
-
-    // Create a new user
-    const newUser = new Employee({
-      email,
-      password: hashedPassword,
-      status,
-      role,
-      birthday,
-      designation,
-      appraisalDate,
-      address,
-      gender,
-      employeeId: empId,
-      dateOfJoining,
-      firstName,
-      lastName,
-      personalInformation,
-      emergencyContact,
-      bankInformation,
-      education,
-      experience,
-      employeeSalary,
-      profileImage,
+    const empId = `${email.split("@")[0]}@vanced`;
+  
+    // Create and save the new user
+    const newUser = await Employee.create({
+      ...req.body, // Spread all properties from req.body
+      password: hashedPassword, // Override with hashed password
+      role: role || "employee", // Ensure default role if blank or undefined
+      employeeId: empId, // Add computed employee ID
     });
-
-    // Save the new user to the database
-    await newUser.save();
-
+  
     res.status(201).json({
       message: "Employee registered successfully",
       userId: newUser._id,
@@ -98,6 +58,7 @@ router.post("/add-employee", async (req, res) => {
     console.error("Error during employee registration:", error);
     res.status(500).json({ message: "Internal server error" });
   }
+  
 });
 
 router.put("/update-employee", auth, async (req, res) => {
