@@ -142,18 +142,14 @@ router.get("/list", auth, async (req, res) => {
 });
 router.get("/active-user", auth, async (req, res) => {
   try {
-    const usersImg = await Image.find({});
-    const users = await Employee.find({ status: "Active" }, { password: 0 });
-    const employee = users.map(async (val, idx) => {
-      const user_Id = val._id;
-      const employeeImg = usersImg.find((elm) => elm.user_Id.equals(user_Id));
-      const image = employeeImg
-        ? { path: employeeImg.path, id: employeeImg.id }
-        : "";
-      return { ...val._doc, image };
-    });
-    const employees = await Promise.all(employee);
-    res.json(employees);
+    const users = await Employee.find(
+      { 
+        status: "Active", 
+        superAdmin: { $ne: true }
+      },
+      { password: 0 }
+    );
+    res.json(users);
   } catch (error) {
     res.status(500).json({ message: "Something went wrong" });
   }

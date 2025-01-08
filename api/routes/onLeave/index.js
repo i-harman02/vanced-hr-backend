@@ -551,7 +551,13 @@ router.put("/update-leave", auth, async (req, res) => {
 router.get("/today-stats", auth, async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
-    const employee = await Employee.find({});
+    const employee = await Employee.find(
+      { 
+        status: "Active", 
+        superAdmin: { $ne: true }
+      },
+      { password: 0 }
+    );
     const leaves = await Leaves.find({
       $or: [
         {
