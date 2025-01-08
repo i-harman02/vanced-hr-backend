@@ -17,6 +17,7 @@ const Termination = require("../../../models/termination");
 const Teams = require("../../../models/team");
 const Announcement = require("../../../models/announcement");
 const Comments = require("../../../models/comment");
+const DeleteUploadedImage = require("../../helpers/deleteImage/deleteUploadedImage");
 
 const router = express.Router();
 const saltRounds = 10;
@@ -24,24 +25,24 @@ const saltRounds = 10;
 router.post("/add-employee", async (req, res) => {
   try {
     const { email, password, firstName, lastName, role } = req.body;
-  
+
     // Validate required fields
     if (!email || !password || !firstName || !lastName) {
       return res.status(400).json({ message: "Required fields are missing" });
     }
-  
+
     // Check if email already exists
     const existingEmail = await Employee.findOne({ email });
     if (existingEmail) {
       return res.status(409).json({ message: "Email already exists" });
     }
-  
+
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-  
+
     // Generate unique employee ID
     const empId = `${email.split("@")[0]}@vanced`;
-  
+
     // Create and save the new user
     const newUser = await Employee.create({
       ...req.body, // Spread all properties from req.body
@@ -49,7 +50,7 @@ router.post("/add-employee", async (req, res) => {
       role: role || "employee", // Ensure default role if blank or undefined
       employeeId: empId, // Add computed employee ID
     });
-  
+
     res.status(201).json({
       message: "Employee registered successfully",
       userId: newUser._id,
@@ -58,27 +59,49 @@ router.post("/add-employee", async (req, res) => {
     console.error("Error during employee registration:", error);
     res.status(500).json({ message: "Internal server error" });
   }
-  
+
 });
 
 router.put("/update-employee", auth, async (req, res) => {
+
   try {
     const password = req?.body?.password;
     const hashedPassword = password
       ? await bcrypt.hash(password, saltRounds)
       : "";
+
     const updatedFields = password
       ? { ...req.body, password: hashedPassword }
       : req.body;
 
-    await Employee.findByIdAndUpdate(
-      { _id: req.body.id },
-      { $set: updatedFields },
-      { new: true, upsert: true }
-    );
-    res.status(200).json({ message: "Employee detail updated successfully" });
+    if (req.body.profileImage) {
+      const user = await Employee.findOne({ _id: req.body.id });
+      if (user?.profileImage) {
+        const deletionResult = await DeleteUploadedImage(user.profileImage);
+        if (!deletionResult) {
+          console.error('Failed to delete previous profile image');
+        }
+      }
+    }
+
+    try {
+      const updatedUser = await Employee.findByIdAndUpdate(
+        { _id: req.body.id },
+        { $set: updatedFields },
+        { new: true, upsert: true }
+      );
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Employee not found" });
+      }
+
+      res.status(200).json({ message: "Employee detail updated successfully" });
+    } catch (dbError) {
+      console.error('Error updating employee:', dbError);
+      res.status(500).json({ message: "Error updating employee details" });
+    }
   } catch (error) {
-    console.error(error);
+    console.error('Unexpected error:', error);
     res.status(500).json({ message: "Something went wrong" });
   }
 });
