@@ -5,11 +5,12 @@ const router = express.Router();
 
 router.post("/", auth, async (req, res) => {
   try {
-    const { description, heading } = req.body;
+    const { description, heading, policyUrl } = req.body;
 
     const newPolicy = new Policy({
       description,
       heading,
+      policyUrl,
     });
 
     await newPolicy.save();

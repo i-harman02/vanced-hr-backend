@@ -34,6 +34,21 @@ router.post("/upload", upload.single("image"), async (req, res) => {
   }
 });
 
+// Upload image
+router.post("/file-upload", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).send({ message: 'No file uploaded' });
+    }
+
+    const imagePath = req.file.path;
+    res.status(200).send({ message: 'Image uploaded successfully!', imagePath });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
 // Get image by ID
 router.get("/get/:id", async (req, res) => {
   try {

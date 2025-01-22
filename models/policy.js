@@ -7,6 +7,9 @@ const policySchema = new mongoose.Schema(
     heading: {
       type: String,
     },
+    policyUrl: {
+      type: String,
+    },
   },
   { timestamps: true }
 );
