@@ -52,6 +52,10 @@ const employeeSchema = new mongoose.Schema({
     type: String,
     default: "Active",
   },
+  acceptPolicies: {
+    type: Boolean,
+    default: false,
+  },
   appraisalDate: {
     type: Date,
   },

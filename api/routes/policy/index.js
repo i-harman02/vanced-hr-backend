@@ -1,6 +1,7 @@
 const express = require("express");
 const auth = require("../../helpers/auth");
 const Policy = require("../../../models/policy");
+const EmployeeModel = require("../../../models/employee");
 const router = express.Router();
 
 router.post("/", auth, async (req, res) => {
@@ -14,6 +15,9 @@ router.post("/", auth, async (req, res) => {
     });
 
     await newPolicy.save();
+
+    await EmployeeModel.updateMany({ acceptPolicies: false })
+
     res
       .status(201)
       .json({ message: "Policy created successfully", policy: newPolicy });
@@ -26,6 +30,10 @@ router.post("/", auth, async (req, res) => {
 router.get("/", auth, async (req, res) => {
   try {
     const policies = await Policy.findOne();
+    if (!policies) {
+      return res.status(200).json({ message: "No policies found", policies:[] });
+    }
+  
     res.status(200).json(policies);
   } catch (error) {
     console.error(error);
@@ -47,7 +55,7 @@ router.put("/:id", auth, async (req, res) => {
     if (!updatedPolicy) {
       return res.status(404).json({ message: "Policy not found" });
     }
-
+    await EmployeeModel.updateMany({ acceptPolicies: false })
     res
       .status(200)
       .json({ message: "Policy updated successfully", policy: updatedPolicy });
