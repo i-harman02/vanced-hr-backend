@@ -8,7 +8,7 @@ const auth = require('../../helpers/auth')
 
 router.get("/all-count",auth, async (req, res) => {
   try {
-    const employee = await Employee.find({superAdmin: { $ne: true }});
+    const employee = await Employee.find({superAdmin: { $ne: true },});
     const client = await Client.find({});
     const project = await Projects.find({});
     const totalProjects = project.length;
