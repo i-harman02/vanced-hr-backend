@@ -125,7 +125,7 @@ router.put("/employee-status/:id", auth, async (req, res) => {
 router.get("/list", auth, async (req, res) => {
   try {
     const usersImg = await Image.find({});
-    const users = await Employee.find({}, { password: 0 });
+    const users = await Employee.find({superAdmin: { $ne: true }}, { password: 0 });
     const employee = users.map(async (val, idx) => {
       const user_Id = val._id;
       const employeeImg = usersImg.find((elm) => elm.user_Id.equals(user_Id));
