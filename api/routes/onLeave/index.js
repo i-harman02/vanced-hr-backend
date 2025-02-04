@@ -37,6 +37,8 @@ router.post("/apply-leave", auth, async (req, res) => {
         .json({ message: "Leave request overlaps with existing leave" });
     }
 
+    let findManager = await Employee.findOne({ role: "manager"});
+    
     const newLeave = new Leaves({
       employee,
       startDate,
@@ -44,7 +46,7 @@ router.post("/apply-leave", auth, async (req, res) => {
       leaveType,
       noOfDays,
       reason,
-      notify,
+      notify : findManager ? [...notify, findManager._id] : notify,
       approvedBy,
       status,
       startTime,
@@ -85,10 +87,10 @@ router.get("/on-leave", auth, async (req, res) => {
       startDate: { $lte: today },
       endDate: { $gte: today },
     }).populate({
-        path: "employee",
-        select:
-          "userName designation employeeId firstName lastName email personalInformation.telephones address profileImage",
-      });
+      path: "employee",
+      select:
+        "userName designation employeeId firstName lastName email personalInformation.telephones address profileImage",
+    });
 
     res.status(200).json(employeesOnLeaveToday);
   } catch (error) {
@@ -552,8 +554,8 @@ router.get("/today-stats", auth, async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
     const employee = await Employee.find(
-      { 
-        status: "Active", 
+      {
+        status: "Active",
         superAdmin: { $ne: true }
       },
       { password: 0 }
