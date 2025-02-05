@@ -27,7 +27,7 @@ router.post("/add-employee", async (req, res) => {
     const { email, password, firstName, lastName, role } = req.body;
 
     // Validate required fields
-    if (!email || !password || !firstName || !lastName) {
+    if (!email || !password || !firstName ) {
       return res.status(400).json({ message: "Required fields are missing" });
     }
 
