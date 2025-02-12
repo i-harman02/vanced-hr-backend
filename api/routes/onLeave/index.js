@@ -99,7 +99,121 @@ router.get("/on-leave", auth, async (req, res) => {
   }
 });
 
-router.get("/balance/:id", auth, async (req, res) => {
+// router.get("/balance/:id", auth, async (req, res) => {
+//   try {
+//     const userId = req.params.id;
+//     const currentYear = new Date().getFullYear();
+//     const currentDate = new Date();
+//     const leaveData = await Leaves.find({
+//       employee: userId,
+//     });
+//     const leavesByYear = leaveData.filter((leave) => {
+//       const leaveYear = new Date(leave.startDate).getFullYear();
+//       return leaveYear === currentYear;
+//     });
+//     const approvedLeaves = leavesByYear.filter((leave) => {
+//       const leaveDay = new Date(leave.startDate);
+//       return (
+//         leaveDay <= currentDate &&
+//         leave.status === "Approved" &&
+//         leave.leaveType === "FULL_DAY_LEAVE"
+//       );
+//     });
+//     const approvedHalfDaysLeaves = leavesByYear.filter((leave) => {
+//       const leaveDay = new Date(leave.startDate);
+//       return (
+//         leaveDay <= currentDate &&
+//         leave.status === "Approved" &&
+//         leave.leaveType === "HALF_DAY_LEAVE"
+//       );
+//     });
+
+//     const approvedShortLeaves = leavesByYear.filter((leave) => {
+//       const leaveDay = new Date(leave.startDate);
+//       return (
+//         leaveDay <= currentDate &&
+//         leave.status === "Approved" &&
+//         leave.leaveType === "SHORT_LEAVE"
+//       );
+//     });
+
+//     const pendingLeaves = leavesByYear.filter((leave) => {
+//       const leaveDay = new Date(leave.startDate);
+//       return (
+//         leaveDay <= currentDate &&
+//         leave.status === "Pending" &&
+//         leave.leaveType === "FULL_DAY_LEAVE"
+//       );
+//     });
+//     const pendingHalfDayLeaves = leavesByYear.filter((leave) => {
+//       const leaveDay = new Date(leave.startDate);
+//       return (
+//         leaveDay <= currentDate &&
+//         leave.status === "Pending" &&
+//         leave.leaveType === "HALF_DAY_LEAVE"
+//       );
+//     });
+//     const pendingShortLeaves = leavesByYear.filter((leave) => {
+//       const leaveDay = new Date(leave.startDate);
+//       return (
+//         leaveDay <= currentDate &&
+//         leave.status === "Pending" &&
+//         leave.leaveType === "SHORT_LEAVE"
+//       );
+//     });
+//     let allLeaves = 0;
+//     approvedLeaves.forEach((val) => {
+//       allLeaves += val.noOfDays;
+//     });
+//     approvedHalfDaysLeaves.forEach((val) => {
+//       allLeaves += 0.5;
+//     });
+
+//     let allUnpaidLeaves = 0;
+//     pendingLeaves.forEach((val) => {
+//       allUnpaidLeaves += val.noOfDays;
+//     });
+//     pendingHalfDayLeaves.forEach((val) => {
+//       allUnpaidLeaves += 0.5;
+//     });
+
+//     allLeaves += await calculateShortLeave(approvedShortLeaves);
+//     allUnpaidLeaves += await calculateShortLeave(pendingShortLeaves);
+//     const totalShortLeaves =
+//       (approvedShortLeaves ? approvedShortLeaves.length : 0) +
+//       (pendingShortLeaves ? pendingShortLeaves.length : 0);
+//     let leftLeave = 0;
+//     const totalLeave = 12;
+//     let paidLeave;
+//     if (allLeaves <= 12) {
+//       paidLeave = allLeaves;
+//       leftLeave = totalLeave - allLeaves;
+//     } else {
+//       paidLeave = 12;
+//       allUnpaidLeaves += allLeaves - 12;
+//       leftLeave = 0;
+//     }
+
+//     const unPaidLeave = allUnpaidLeaves;
+//     const remainingLeave = leftLeave;
+//     const shortLeave = totalShortLeaves;
+
+//     const leaveBalances = {
+//       totalLeave,
+//       paidLeave,
+//       unPaidLeave,
+//       shortLeave,
+//       remainingLeave,
+//     };
+
+//     res.status(200).json(leaveBalances);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send("Internal Server Error");
+//   }
+// });
+
+router.get("/balance/:id",  async (req, res) => {
   try {
     const userId = req.params.id;
     const currentYear = new Date().getFullYear();
@@ -107,103 +221,65 @@ router.get("/balance/:id", auth, async (req, res) => {
     const leaveData = await Leaves.find({
       employee: userId,
     });
+
+    // Track the monthly leave balance (start with 1 leave per month)
+    let leaveBalancePerMonth = Array(12).fill(1); // Array of 12 months, initialized with 1 leave per month
+
+    // Filter leaves taken this year
     const leavesByYear = leaveData.filter((leave) => {
       const leaveYear = new Date(leave.startDate).getFullYear();
       return leaveYear === currentYear;
     });
-    const approvedLeaves = leavesByYear.filter((leave) => {
-      const leaveDay = new Date(leave.startDate);
-      return (
-        leaveDay <= currentDate &&
-        leave.status === "Approved" &&
-        leave.leaveType === "FULL_DAY_LEAVE"
-      );
-    });
-    const approvedHalfDaysLeaves = leavesByYear.filter((leave) => {
-      const leaveDay = new Date(leave.startDate);
-      return (
-        leaveDay <= currentDate &&
-        leave.status === "Approved" &&
-        leave.leaveType === "HALF_DAY_LEAVE"
-      );
-    });
 
-    const approvedShortLeaves = leavesByYear.filter((leave) => {
-      const leaveDay = new Date(leave.startDate);
-      return (
-        leaveDay <= currentDate &&
-        leave.status === "Approved" &&
-        leave.leaveType === "SHORT_LEAVE"
-      );
-    });
+    // Track the number of leaves taken each month
+    const monthlyLeaveDetails = Array(12).fill(0); // Stores total days taken each month
 
-    const pendingLeaves = leavesByYear.filter((leave) => {
-      const leaveDay = new Date(leave.startDate);
-      return (
-        leaveDay <= currentDate &&
-        leave.status === "Pending" &&
-        leave.leaveType === "FULL_DAY_LEAVE"
-      );
-    });
-    const pendingHalfDayLeaves = leavesByYear.filter((leave) => {
-      const leaveDay = new Date(leave.startDate);
-      return (
-        leaveDay <= currentDate &&
-        leave.status === "Pending" &&
-        leave.leaveType === "HALF_DAY_LEAVE"
-      );
-    });
-    const pendingShortLeaves = leavesByYear.filter((leave) => {
-      const leaveDay = new Date(leave.startDate);
-      return (
-        leaveDay <= currentDate &&
-        leave.status === "Pending" &&
-        leave.leaveType === "SHORT_LEAVE"
-      );
-    });
-    let allLeaves = 0;
-    approvedLeaves.forEach((val) => {
-      allLeaves += val.noOfDays;
-    });
-    approvedHalfDaysLeaves.forEach((val) => {
-      allLeaves += 0.5;
-    });
+    let totalPaidLeave = 0;
+    let totalUnpaidLeave = 0;
+    let remainingLeave = 12;
 
-    let allUnpaidLeaves = 0;
-    pendingLeaves.forEach((val) => {
-      allUnpaidLeaves += val.noOfDays;
-    });
-    pendingHalfDayLeaves.forEach((val) => {
-      allUnpaidLeaves += 0.5;
-    });
+    for (const leave of leavesByYear) {
+      const leaveDay = new Date(leave.startDate);
+      const month = leaveDay.getMonth(); // Get the month (0-based index)
+      const leaveStatus = leave.status;
+      const leaveType = leave.leaveType;
+      const leaveDays = leave.noOfDays;
 
-    allLeaves += await calculateShortLeave(approvedShortLeaves);
-    allUnpaidLeaves += await calculateShortLeave(pendingShortLeaves);
-    const totalShortLeaves =
-      (approvedShortLeaves ? approvedShortLeaves.length : 0) +
-      (pendingShortLeaves ? pendingShortLeaves.length : 0);
-    let leftLeave = 0;
-    const totalLeave = 12;
-    let paidLeave;
-    if (allLeaves <= 12) {
-      paidLeave = allLeaves;
-      leftLeave = totalLeave - allLeaves;
-    } else {
-      paidLeave = 12;
-      allUnpaidLeaves += allLeaves - 12;
-      leftLeave = 0;
+      // Only process approved or pending leaves before the current date
+      if (leaveDay <= currentDate && leaveStatus === "Approved") {
+        if (leaveType === "FULL_DAY_LEAVE" || leaveType === "HALF_DAY_LEAVE") {
+          monthlyLeaveDetails[month] += leaveDays;
+        }
+      }
     }
 
-    const unPaidLeave = allUnpaidLeaves;
-    const remainingLeave = leftLeave;
-    const shortLeave = totalShortLeaves;
+    // Update leave balance based on the monthly leave data
+    for (let month = 0; month < 12; month++) {
+      const takenLeave = monthlyLeaveDetails[month];
+      if (takenLeave <= leaveBalancePerMonth[month]) {
+        totalPaidLeave += takenLeave; // Add taken leave to paid leave
+        leaveBalancePerMonth[month] -= takenLeave; // Deduct taken leave from paid leave
+      } else {
+        totalPaidLeave += leaveBalancePerMonth[month]; // Add all paid leave available
+        leaveBalancePerMonth[month] = 0; // No paid leave left for the month
+        totalUnpaidLeave += takenLeave - leaveBalancePerMonth[month]; // Add remaining as unpaid
+      }
+
+      // Carry over remaining paid leave to the next month
+      if (month < 11) {
+        leaveBalancePerMonth[month + 1] += leaveBalancePerMonth[month];
+      }
+    }
+
+    // Calculate the remaining paid leave for the year
+    remainingLeave = 12 - totalPaidLeave;
 
     const leaveBalances = {
-      totalLeave,
-      paidLeave,
-      unPaidLeave,
-      shortLeave,
-      remainingLeave,
+      totalLeave: 12, // Total leaves available per year
+      paidLeave: totalPaidLeave, // Total paid leave taken
+      unPaidLeave: totalUnpaidLeave, // Total unpaid leave taken
+      remainingLeave: remainingLeave,
+      shortLeave:0, // Remaining paid leave for the year
     };
 
     res.status(200).json(leaveBalances);
