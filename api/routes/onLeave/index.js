@@ -36,7 +36,7 @@ router.post("/apply-leave", auth, async (req, res) => {
         .status(400)
         .json({ message: "Leave request overlaps with existing leave" });
     }
-
+   
     let findManager = await Employee.findOne({ role: "manager"});
     
     const newLeave = new Leaves({
@@ -213,73 +213,77 @@ router.get("/on-leave", auth, async (req, res) => {
 //   }
 // });
 
-router.get("/balance/:id",  async (req, res) => {
+router.get("/balance/:id", async (req, res) => {
   try {
     const userId = req.params.id;
     const currentYear = new Date().getFullYear();
-    const currentDate = new Date();
-    const leaveData = await Leaves.find({
-      employee: userId,
-    });
+    const currentMonth = new Date().getMonth(); 
+    const leaveData = await Leaves.find({ employee: userId });
 
-    // Track the monthly leave balance (start with 1 leave per month)
-    let leaveBalancePerMonth = Array(12).fill(1); // Array of 12 months, initialized with 1 leave per month
-
-    // Filter leaves taken this year
-    const leavesByYear = leaveData.filter((leave) => {
-      const leaveYear = new Date(leave.startDate).getFullYear();
-      return leaveYear === currentYear;
-    });
-
-    // Track the number of leaves taken each month
-    const monthlyLeaveDetails = Array(12).fill(0); // Stores total days taken each month
-
+    let accumulatedPaidLeave = 0; 
     let totalPaidLeave = 0;
     let totalUnpaidLeave = 0;
-    let remainingLeave = 12;
+    let totalShortLeave = 0;
+    let remainingPaidLeave = 0; 
 
-    for (const leave of leavesByYear) {
-      const leaveDay = new Date(leave.startDate);
-      const month = leaveDay.getMonth(); // Get the month (0-based index)
+    let monthlyLeaveTaken = Array(12).fill(0); 
+    let monthlyShortLeave = Array(12).fill(0); 
+
+    for (const leave of leaveData) {
+      const leaveDate = new Date(leave.startDate);
+      const month = leaveDate.getMonth();
       const leaveStatus = leave.status;
       const leaveType = leave.leaveType;
-      const leaveDays = leave.noOfDays;
+      let leaveDays = leave.noOfDays;
 
-      // Only process approved or pending leaves before the current date
-      if (leaveDay <= currentDate && leaveStatus === "Approved") {
-        if (leaveType === "FULL_DAY_LEAVE" || leaveType === "HALF_DAY_LEAVE") {
-          monthlyLeaveDetails[month] += leaveDays;
+      if (leaveStatus === "Approved") {
+        if (leaveType === "FULL_DAY_LEAVE") {
+          monthlyLeaveTaken[month] += leaveDays;
+        }
+        if (leaveType === "HALF_DAY_LEAVE") {
+          monthlyLeaveTaken[month] += 0.5; 
+        }
+        if (leaveType === "SHORT_LEAVE") {
+          monthlyShortLeave[month] += 1;
         }
       }
     }
 
-    // Update leave balance based on the monthly leave data
-    for (let month = 0; month < 12; month++) {
-      const takenLeave = monthlyLeaveDetails[month];
-      if (takenLeave <= leaveBalancePerMonth[month]) {
-        totalPaidLeave += takenLeave; // Add taken leave to paid leave
-        leaveBalancePerMonth[month] -= takenLeave; // Deduct taken leave from paid leave
-      } else {
-        totalPaidLeave += leaveBalancePerMonth[month]; // Add all paid leave available
-        leaveBalancePerMonth[month] = 0; // No paid leave left for the month
-        totalUnpaidLeave += takenLeave - leaveBalancePerMonth[month]; // Add remaining as unpaid
-      }
+    for (let month = 0; month <= currentMonth; month++) {
 
-      // Carry over remaining paid leave to the next month
-      if (month < 11) {
-        leaveBalancePerMonth[month + 1] += leaveBalancePerMonth[month];
+      accumulatedPaidLeave += 1;
+
+      let excessShortLeaves = Math.max(monthlyShortLeave[month] - 2, 0);
+      let convertedShortLeaves = Math.floor(excessShortLeaves / 2) * 0.5;
+      totalShortLeave += monthlyShortLeave[month];
+
+      let totalLeavesThisMonth = monthlyLeaveTaken[month] + convertedShortLeaves;
+
+      if (totalLeavesThisMonth > 0) {
+        if (totalLeavesThisMonth <= accumulatedPaidLeave) {
+          totalPaidLeave += totalLeavesThisMonth;
+          accumulatedPaidLeave -= totalLeavesThisMonth; 
+        } else {
+          totalPaidLeave += accumulatedPaidLeave;
+          totalUnpaidLeave += totalLeavesThisMonth - accumulatedPaidLeave;
+          accumulatedPaidLeave = 0; 
+        }
       }
     }
 
-    // Calculate the remaining paid leave for the year
-    remainingLeave = 12 - totalPaidLeave;
+
+    remainingPaidLeave = accumulatedPaidLeave;
+
+
+    let remainingLeave = 12 - totalPaidLeave; 
 
     const leaveBalances = {
-      totalLeave: 12, // Total leaves available per year
-      paidLeave: totalPaidLeave, // Total paid leave taken
-      unPaidLeave: totalUnpaidLeave, // Total unpaid leave taken
+      totalLeave: 12,
       remainingLeave: remainingLeave,
-      shortLeave:0, // Remaining paid leave for the year
+      paidLeave: totalPaidLeave,
+      unPaidLeave: totalUnpaidLeave,
+      // shortLeave: totalShortLeave, 
+      remainingPaidLeaveInCurrentMonth: remainingPaidLeave, 
     };
 
     res.status(200).json(leaveBalances);
@@ -288,6 +292,7 @@ router.get("/balance/:id",  async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
 
 router.get("/all-leaves/:id", auth, async (req, res) => {
   try {
