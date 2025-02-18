@@ -217,17 +217,16 @@ router.get("/balance/:id", async (req, res) => {
   try {
     const userId = req.params.id;
     const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth(); 
+    const currentMonth = new Date().getMonth();
     const leaveData = await Leaves.find({ employee: userId });
 
-    let accumulatedPaidLeave = 0; 
+    let accumulatedPaidLeave = 0;
     let totalPaidLeave = 0;
     let totalUnpaidLeave = 0;
-    let totalShortLeave = 0;
-    let remainingPaidLeave = 0; 
+    let remainingPaidLeave = 0;
 
-    let monthlyLeaveTaken = Array(12).fill(0); 
-    let monthlyShortLeave = Array(12).fill(0); 
+    let monthlyLeaveTaken = Array(12).fill(0);
+    let usedShortLeave = Array(12).fill(0);
 
     for (const leave of leaveData) {
       const leaveDate = new Date(leave.startDate);
@@ -241,49 +240,46 @@ router.get("/balance/:id", async (req, res) => {
           monthlyLeaveTaken[month] += leaveDays;
         }
         if (leaveType === "HALF_DAY_LEAVE") {
-          monthlyLeaveTaken[month] += 0.5; 
+          monthlyLeaveTaken[month] += 0.5;
         }
         if (leaveType === "SHORT_LEAVE") {
-          monthlyShortLeave[month] += 1;
+          usedShortLeave[month]++; // Count how many short leaves were taken
+          if (usedShortLeave[month] > 2) {
+            monthlyLeaveTaken[month] += 0.5; // Convert extra short leaves to half-day leave
+          }
         }
       }
     }
 
     for (let month = 0; month <= currentMonth; month++) {
-
       accumulatedPaidLeave += 1;
 
-      let excessShortLeaves = Math.max(monthlyShortLeave[month] - 2, 0);
-      let convertedShortLeaves = Math.floor(excessShortLeaves / 2) * 0.5;
-      totalShortLeave += monthlyShortLeave[month];
-
-      let totalLeavesThisMonth = monthlyLeaveTaken[month] + convertedShortLeaves;
+      let totalLeavesThisMonth = monthlyLeaveTaken[month];
 
       if (totalLeavesThisMonth > 0) {
         if (totalLeavesThisMonth <= accumulatedPaidLeave) {
           totalPaidLeave += totalLeavesThisMonth;
-          accumulatedPaidLeave -= totalLeavesThisMonth; 
+          accumulatedPaidLeave -= totalLeavesThisMonth;
         } else {
           totalPaidLeave += accumulatedPaidLeave;
           totalUnpaidLeave += totalLeavesThisMonth - accumulatedPaidLeave;
-          accumulatedPaidLeave = 0; 
+          accumulatedPaidLeave = 0;
         }
       }
     }
 
-
     remainingPaidLeave = accumulatedPaidLeave;
+    let remainingLeave = 12 - totalPaidLeave;
 
-
-    let remainingLeave = 12 - totalPaidLeave; 
+    const shortLeaveRemaining = Math.max(2 - usedShortLeave[currentMonth], 0); // Max ensures it doesn't go negative
 
     const leaveBalances = {
       totalLeave: 12,
       remainingLeave: remainingLeave,
       paidLeave: totalPaidLeave,
       unPaidLeave: totalUnpaidLeave,
-      shortLeave: totalShortLeave, 
-      remainingPaidLeaveInCurrentMonth: remainingPaidLeave, 
+      shortLeave: shortLeaveRemaining, // ✅ Starts at 2 and decreases as leaves are taken
+      remainingPaidLeaveInCurrentMonth: remainingPaidLeave,
     };
 
     res.status(200).json(leaveBalances);
