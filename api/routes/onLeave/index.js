@@ -282,7 +282,7 @@ router.get("/balance/:id", async (req, res) => {
       remainingLeave: remainingLeave,
       paidLeave: totalPaidLeave,
       unPaidLeave: totalUnpaidLeave,
-      // shortLeave: totalShortLeave, 
+      shortLeave: totalShortLeave, 
       remainingPaidLeaveInCurrentMonth: remainingPaidLeave, 
     };
 
