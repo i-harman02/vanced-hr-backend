@@ -216,7 +216,6 @@ router.get("/on-leave", auth, async (req, res) => {
 router.get("/balance/:id", async (req, res) => {
   try {
     const userId = req.params.id;
-    const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth();
     const leaveData = await Leaves.find({ employee: userId });
 
@@ -243,18 +242,20 @@ router.get("/balance/:id", async (req, res) => {
           monthlyLeaveTaken[month] += 0.5;
         }
         if (leaveType === "SHORT_LEAVE") {
-          usedShortLeave[month]++; // Count how many short leaves were taken
-          if (usedShortLeave[month] > 2) {
-            monthlyLeaveTaken[month] += 0.5; // Convert extra short leaves to half-day leave
-          }
+          usedShortLeave[month]++;
         }
       }
     }
 
     for (let month = 0; month <= currentMonth; month++) {
-      accumulatedPaidLeave += 1;
+      accumulatedPaidLeave += 1; // Earn 1 paid leave per month
 
       let totalLeavesThisMonth = monthlyLeaveTaken[month];
+      let extraShortLeaves = Math.max(usedShortLeave[month] - 2, 0); // Short leaves after 2
+
+      let convertedShortLeaves = extraShortLeaves * 0.5; // Each extra short leave counts as 0.5 leave
+
+      totalLeavesThisMonth += convertedShortLeaves;
 
       if (totalLeavesThisMonth > 0) {
         if (totalLeavesThisMonth <= accumulatedPaidLeave) {
@@ -271,14 +272,14 @@ router.get("/balance/:id", async (req, res) => {
     remainingPaidLeave = accumulatedPaidLeave;
     let remainingLeave = 12 - totalPaidLeave;
 
-    const shortLeaveRemaining = Math.max(2 - usedShortLeave[currentMonth], 0); // Max ensures it doesn't go negative
+    const shortLeaveDisplay = usedShortLeave[currentMonth]; // Show exact number of short leaves
 
     const leaveBalances = {
       totalLeave: 12,
       remainingLeave: remainingLeave,
       paidLeave: totalPaidLeave,
       unPaidLeave: totalUnpaidLeave,
-      shortLeave: shortLeaveRemaining, // ✅ Starts at 2 and decreases as leaves are taken
+      shortLeave: shortLeaveDisplay, // Shows the exact number of short leaves
       remainingPaidLeaveInCurrentMonth: remainingPaidLeave,
     };
 
@@ -289,30 +290,6 @@ router.get("/balance/:id", async (req, res) => {
   }
 });
 
-
-router.get("/all-leaves/:id", auth, async (req, res) => {
-  try {
-    const userId = req.params.id;
-    const currentYear = new Date().getFullYear();
-    const leaveData = await Leaves.find({
-      employee: userId,
-    })
-      .populate("employee")
-      .populate("approvedBy");
-
-
-
-    const leavesByYear = leaveData.filter((leave) => {
-      const leaveYear = new Date(leave.startDate).getFullYear();
-      return leaveYear;
-      //=== currentYear;
-    });
-    res.status(200).json(leavesByYear);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Internal Server Error");
-  }
-});
 
 router.get("/stats/:id", auth, async (req, res) => {
   try {
@@ -679,3 +656,17 @@ router.get("/today-stats", auth, async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
