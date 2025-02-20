@@ -38,7 +38,6 @@ router.get("/list/:postType", auth, async (req, res) => {
     }
   
     const announcement = await Announcement.find({ postType })
-    .sort({ date: -1 })
       .populate({
         path: "employee",
       })
