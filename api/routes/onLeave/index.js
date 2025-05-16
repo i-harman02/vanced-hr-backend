@@ -273,12 +273,12 @@ router.get("/balance/:id", async (req, res) => {
     let remainingLeave = 12 - totalPaidLeave;
 
     const shortLeaveDisplay = usedShortLeave[currentMonth]; // Show exact number of short leaves
-
+    const absentLeave = await Leaves.find({ employee: userId, status: "Absent", });
     const leaveBalances = {
       totalLeave: 12,
       remainingLeave: remainingLeave,
       paidLeave: totalPaidLeave,
-      unPaidLeave: totalUnpaidLeave,
+      unPaidLeave: totalUnpaidLeave + absentLeave.length,
       shortLeave: shortLeaveDisplay, // Shows the exact number of short leaves
       remainingPaidLeaveInCurrentMonth: remainingPaidLeave,
     };
@@ -290,6 +290,30 @@ router.get("/balance/:id", async (req, res) => {
   }
 });
 
+
+router.get("/all-leaves/:id", auth, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const currentYear = new Date().getFullYear();
+    const leaveData = await Leaves.find({
+      employee: userId,
+    })
+      .populate("employee")
+      .populate("approvedBy");
+
+
+
+    const leavesByYear = leaveData.filter((leave) => {
+      const leaveYear = new Date(leave.startDate).getFullYear();
+      return leaveYear;
+      //=== currentYear;
+    });
+    res.status(200).json(leavesByYear);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+});
 
 router.get("/stats/:id", auth, async (req, res) => {
   try {
