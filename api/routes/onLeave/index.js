@@ -272,15 +272,26 @@ router.get("/balance/:id", async (req, res) => {
     remainingPaidLeave = accumulatedPaidLeave;
     let remainingLeave = 12 - totalPaidLeave;
 
-    const shortLeaveDisplay = usedShortLeave[currentMonth]; // Show exact number of short leaves
+    // const shortLeaveDisplay = usedShortLeave[currentMonth]; // Show exact number of short leaves
     const absentLeave = await Leaves.find({ employee: userId, status: "Absent", });
+    const floaterLeave = await Leaves.find({ employee: userId, leaveType: "FLOATER_LEAVE", status: "Approved", });
+    const absentDays = absentLeave.reduce((total, leave) => {
+      return total + (leave.noOfDays || 0);
+    }, 0);
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const shortLeaveDisplay = await Leaves.find({ employee: userId,  leaveType: "SHORT_LEAVE",  status: "Approved",  startDate: {    $gte: startOfMonth,    $lte: endOfMonth,  },});
+
     const leaveBalances = {
       totalLeave: 12,
       remainingLeave: remainingLeave,
       paidLeave: totalPaidLeave,
-      unPaidLeave: totalUnpaidLeave + absentLeave[0].noOfDays,
-      shortLeave: shortLeaveDisplay, // Shows the exact number of short leaves
+      unPaidLeave: totalUnpaidLeave + absentDays,
+      shortLeave: 2 - shortLeaveDisplay.length, // Shows the exact number of short leaves
       remainingPaidLeaveInCurrentMonth: remainingPaidLeave,
+      floaterLeave: floaterLeave.length,
     };
 
     res.status(200).json(leaveBalances);
@@ -552,7 +563,7 @@ router.get("/all-requested-leaves", auth, async (req, res) => {
 
 router.put("/status-update", auth, async (req, res) => {
   try {
-    const { id: userId, employerId, status } = req.body;
+    const { id: userId, employerId, status, reason } = req.body;
 
     if (!userId || !employerId || !status) {
       return res.status(400).json({ message: "Missing required fields." });
@@ -560,6 +571,7 @@ router.put("/status-update", auth, async (req, res) => {
 
     const updatedFields = {
       status,
+      reason,
       approvedBy: employerId,
     };
 
@@ -589,7 +601,7 @@ router.put("/status-update", auth, async (req, res) => {
 router.delete("/delete-leave/:id", auth, async (req, res) => {
   try {
     let { id } = req.params;
-    let deleted = await Image.deleteOne({ _id: id });
+    let deleted = await Leaves.deleteOne({ _id: id });
     res.status(200).send({ message: "Leave deleted successfully!", deleted });
   } catch (error) {
     console.error(error);
