@@ -535,7 +535,7 @@ router.get("/requested/:id", auth, async (req, res) => {
         select: "userName designation employeeId firstName lastName profileImage",
       })
       .populate({
-        path: "approvedBy.employer",
+        path: "approvedBy",
         select: "userName designation employeeId firstName lastName profileImage",
       })
     res.status(200).json(leaveData);
