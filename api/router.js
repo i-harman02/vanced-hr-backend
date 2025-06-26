@@ -21,6 +21,7 @@ const appraisalDate = require("./routes/employeeAppraisal");
 const workAnniversary = require("./routes/workAnniversary");
 const policy = require("./routes/policy/index");
 
+const csvUplaod = require("./routes/csvUpload/csvUpload")
 /**
  * @openapi
  * /api/employee/add-employee:
@@ -179,5 +180,5 @@ router.use("/birthday", birthday);
 router.use("/appraisalDate", appraisalDate);
 router.use("/workAnniversary", workAnniversary);
 router.use("/policy", policy);
-
+router.use('/csvUplaod', csvUplaod);
 module.exports = router;
