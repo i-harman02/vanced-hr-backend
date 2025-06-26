@@ -692,17 +692,3 @@ router.get("/today-stats", auth, async (req, res) => {
 });
 
 module.exports = router;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
