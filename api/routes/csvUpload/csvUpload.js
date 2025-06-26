@@ -28,12 +28,13 @@ router.post("/upload-csv", upload.single('file'), async (req, res) => {
     // Remove header (first row)
    let rows = data.slice(1);
    rows = rows.filter(row => row.length > 0);
-   console.log(rows);
-   const employees = await Promise.all(rows.map(async row => {
-    if(row.length > 0){
-    const hashedPassword = await bcrypt.hash(row[25]?.toString() || '123456', saltRounds); // fallback default
+    for (const row of rows) {
+  if (row.length > 0) {
+    const existingEmployee = await Employee.findOne({ email: row[11] });
 
-    return {
+    const hashedPassword = existingEmployee?.password || await bcrypt.hash(row[25]?.toString() || '123456', saltRounds);
+
+    const employeeData = {
       employeeId: row[1]?.toString(),
       firstName: row[2],
       gender: row[3],
@@ -41,7 +42,7 @@ router.post("/upload-csv", upload.single('file'), async (req, res) => {
       personalInformation: {
         maritalStatus: row[5],
         bloodGroup: row[15],
-        telephones: row[10]?.toString(),
+        telephones: [row[10]?.toString()],
         nationality: row[27]
       },
       identityInformation: {
@@ -60,7 +61,7 @@ router.post("/upload-csv", upload.single('file'), async (req, res) => {
       },
       emergencyContact: {
         primary: {
-          phone: row[21],
+          phone: [row[21]?.toString()],
           name: row[22],
           relationship: row[23]
         }
@@ -68,40 +69,59 @@ router.post("/upload-csv", upload.single('file'), async (req, res) => {
       password: hashedPassword,
       role: row[26],
     };
+
+    // If employee exists, update; otherwise insert new
+    await Employee.findOneAndUpdate(
+      { email: row[11] },
+      { $set: employeeData },
+      { upsert: true, new: true }
+    );
   }
-  }));
-  console.log(employees);
-  if(employees !== 'undefined'){
-    await Employee.insertMany(employees);
-  }
- 
-   // console.log(data);
-    // const { email, password, firstName, lastName, role } = req.body;
+}
+  //  const employees = await Promise.all(rows.map(async row => {
+  //   if(row.length > 0){
+  //   const hashedPassword = await bcrypt.hash(row[25]?.toString() || '123456', saltRounds);
 
-    // // Validate required fields
-    // if (!email || !password || !firstName ) {
-    //   return res.status(400).json({ message: "Required fields are missing" });
-    // }
-
-    // // Check if email already exists
-    // const existingEmail = await Employee.findOne({ email });
-    // if (existingEmail) {
-    //   return res.status(409).json({ message: "Email already exists" });
-    // }
-
-    // // Hash the password
-    // const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    // // Generate unique employee ID
-    // const empId = `${email.split("@")[0]}@vanced`;
-
-    // // Create and save the new user
-    // const newUser = await Employee.create({
-    //   ...req.body, // Spread all properties from req.body
-    //   password: hashedPassword, // Override with hashed password
-    //   role: role || "employee", // Ensure default role if blank or undefined
-    //   employeeId: empId, // Add computed employee ID
-    // });
+  //   return {
+  //     employeeId: row[1]?.toString(),
+  //     firstName: row[2],
+  //     gender: row[3],
+  //     birthday: excelDateToJSDate(row[4]),
+  //     personalInformation: {
+  //       maritalStatus: row[5],
+  //       bloodGroup: row[15],
+  //       telephones: row[10]?.toString(),
+  //       nationality: row[27]
+  //     },
+  //     identityInformation: {
+  //       fatherName: row[6],
+  //       panNo: row[17]
+  //     },
+  //     dateOfJoining: excelDateToJSDate(row[7]),
+  //     assignRole: row[8],
+  //     designation: row[9],
+  //     email: row[11],
+  //     address: row[13],
+  //     bankInformation: {
+  //       bankAccountNumber: row[18]?.toString(),
+  //       ifscCode: row[19],
+  //       bankName: row[20]
+  //     },
+  //     emergencyContact: {
+  //       primary: {
+  //         phone: row[21],
+  //         name: row[22],
+  //         relationship: row[23]
+  //       }
+  //     },
+  //     password: hashedPassword,
+  //     role: row[26],
+  //   };
+  // }
+  // }));
+  // if(employees !== 'undefined'){
+  //   await Employee.insertMany(employees);
+  // }
 
     res.status(201).json({
       message: "Employee registered successfully",
