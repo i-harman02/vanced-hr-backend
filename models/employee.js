@@ -15,6 +15,9 @@ const employeeSchema = new mongoose.Schema({
   },
   email: {
     type: String,
+    lowercase:true,
+    unique:true,
+    trim:true,
   },
   employeeSalary: {
     type: Number,

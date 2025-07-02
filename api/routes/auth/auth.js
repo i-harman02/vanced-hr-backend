@@ -10,40 +10,52 @@ const auth = require("../../helpers/auth");
 
 router.post("/login", async (req, res) => {
   try {
-    const { userName, password, email } = req.body;
+    const { email, password } = req.body;
 
-    // Check if username exists
-    const user = await Employee.findOne({ email });
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    const trimmedEmail = email.trim();
+    const atCount = (trimmedEmail.match(/@/g) || []).length;
+
+    if (atCount !== 1) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const user = await Employee.findOne({
+      email: { $regex: `^${trimmedEmail}$`, $options: "i" },
+    });
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-  // Check if the user's status is "Active"
     if (user.status !== "Active") {
       return res.status(403).json({ message: "User is not active" });
     }
-    // Compare passwords
+
+    // ✅ Password match
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ message: "Invalid password" });
     }
 
-    // Generate JWT token
+    // ✅ Create token
     const token = jwt.sign(
       { id: user._id, username: user.userName },
       JWT_SECRET,
-      {
-        expiresIn: "10h",
-      }
+      { expiresIn: "10h" }
     );
 
     const { password: _, ...employee } = user.toObject();
 
     res.json({ message: "Login successfully", user: employee, token });
   } catch (error) {
+    console.error("Login error:", error);
     res.status(500).json({ message: "Something went wrong" });
   }
 });
+
 router.post("/logout", auth, async (req, res) => {
   try {
     let token = req.header("x-auth-token");
