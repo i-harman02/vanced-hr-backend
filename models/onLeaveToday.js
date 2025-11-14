@@ -47,7 +47,7 @@ const onLeaveTodaySchema = new mongoose.Schema({
     type: String,
     default: "Pending",
   },
-});
+},{timestamps:true});
 const Leaves = mongoose.model("Leaves", onLeaveTodaySchema);
 
 module.exports = Leaves;
