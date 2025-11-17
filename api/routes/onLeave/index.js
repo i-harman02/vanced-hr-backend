@@ -6,6 +6,8 @@ const Image = require("../../../models/image");
 const Employee = require("../../../models/employee");
 const auth = require("../../helpers/auth");
 const calculateShortLeave = require("../../helpers/calculateShortLeaves");
+const sendMail = require("../../../helpers/nodemailer");
+const path = require("path");
 //const nodemailer = require("nodemailer");
 
 router.post("/apply-leave", auth, async (req, res) => {
@@ -24,8 +26,8 @@ router.post("/apply-leave", auth, async (req, res) => {
       endTime,
       durations,
     } = req.body;
-
-    // Check if the user already has a leave request overlapping with the new dates
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
     const overlappingLeaveRequest = await Leaves.findOne({
       employee,
       startDate: { $lte: endDate },
@@ -36,9 +38,23 @@ router.post("/apply-leave", auth, async (req, res) => {
         .status(400)
         .json({ message: "Leave request overlaps with existing leave" });
     }
-   
-    let findManager = await Employee.findOne({ role: "manager"});
-    
+    const employeeDetails = await Employee.findById(employee);
+
+    if (!employeeDetails) {
+      return res.status(400).json({ message: "Employee not found" });
+    }
+    const replacements = {
+      EmployeeName: `${employeeDetails.firstName} ${employeeDetails.lastName}`,
+      Designation: employeeDetails.role,
+      LeaveType: leaveType,
+      StartDate: startDateObj.toLocaleDateString(),
+      EndDate: endDateObj.toLocaleDateString(),
+      NumberOfDays: noOfDays,
+      Reason: reason,
+    };
+
+    let findManager = await Employee.findOne({ role: "manager" });
+
     const newLeave = new Leaves({
       employee,
       startDate,
@@ -46,7 +62,7 @@ router.post("/apply-leave", auth, async (req, res) => {
       leaveType,
       noOfDays,
       reason,
-      notify : findManager ? [...notify, findManager._id] : notify,
+      notify: findManager ? [...notify, findManager._id] : notify,
       approvedBy,
       status,
       startTime,
@@ -56,22 +72,26 @@ router.post("/apply-leave", auth, async (req, res) => {
 
     await newLeave.save();
 
-    // const transporter = nodemailer.createTransport({
-    //   // Configure your email transport settings here
-    //   // Example using Gmail (you can use other email services or SMTP servers)
-    //   service: "Gmail",
-    //   auth: {
-    //     user: "YourName@gmail.com",
-    //     pass: "Your password",
-    //   },
-    // });
-    // const mailOptions = {
-    //   from: "YourName@gmail.com",
-    //   to: "email",
-    //   subject: "Leave Information",
-    //   text: `Leave applied ${leaveType} and ${reason}`,
-    // };
-    // await transporter.sendMail(mailOptions);
+    const templateName = "leaveTemplate.html";
+
+    const notifyList = Array.isArray(notify) ? notify : [notify];
+    const toEmails = notifyList[0] ? [notifyList[0]] : [];
+
+
+    const ccList = [
+      ...(notifyList[1] ? [notifyList[1]]: []),
+      process.env.CC_MAIL1,
+      process.env.CC_MAIL2,
+    ];
+
+    await sendMail({
+      to: toEmails,
+      cc: ccList,
+      subject: "Leave Information",
+      templateName,
+      replacements,
+    });
+
     res.status(201).json({ message: "Leave applied successfully" });
   } catch (error) {
     console.error(error);
@@ -273,8 +293,15 @@ router.get("/balance/:id", async (req, res) => {
     let remainingLeave = 12 - totalPaidLeave;
 
     // const shortLeaveDisplay = usedShortLeave[currentMonth]; // Show exact number of short leaves
-    const absentLeave = await Leaves.find({ employee: userId, status: "Absent", });
-    const floaterLeave = await Leaves.find({ employee: userId, leaveType: "FLOATER_LEAVE", status: "Approved", });
+    const absentLeave = await Leaves.find({
+      employee: userId,
+      status: "Absent",
+    });
+    const floaterLeave = await Leaves.find({
+      employee: userId,
+      leaveType: "FLOATER_LEAVE",
+      status: "Approved",
+    });
     const absentDays = absentLeave.reduce((total, leave) => {
       return total + (leave.noOfDays || 0);
     }, 0);
@@ -282,7 +309,12 @@ router.get("/balance/:id", async (req, res) => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const shortLeaveDisplay = await Leaves.find({ employee: userId,  leaveType: "SHORT_LEAVE",  status: "Approved",  startDate: {    $gte: startOfMonth,    $lte: endOfMonth,  },});
+    const shortLeaveDisplay = await Leaves.find({
+      employee: userId,
+      leaveType: "SHORT_LEAVE",
+      status: "Approved",
+      startDate: { $gte: startOfMonth, $lte: endOfMonth },
+    });
 
     const leaveBalances = {
       totalLeave: 12,
@@ -301,7 +333,6 @@ router.get("/balance/:id", async (req, res) => {
   }
 });
 
-
 router.get("/all-leaves/:id", auth, async (req, res) => {
   try {
     const userId = req.params.id;
@@ -311,8 +342,6 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
     })
       .populate("employee")
       .populate("approvedBy");
-
-
 
     const leavesByYear = leaveData.filter((leave) => {
       const leaveYear = new Date(leave.startDate).getFullYear();
@@ -532,12 +561,14 @@ router.get("/requested/:id", auth, async (req, res) => {
     })
       .populate({
         path: "employee",
-        select: "userName designation employeeId firstName lastName profileImage",
+        select:
+          "userName designation employeeId firstName lastName profileImage",
       })
       .populate({
         path: "approvedBy",
-        select: "userName designation employeeId firstName lastName profileImage",
-      })
+        select:
+          "userName designation employeeId firstName lastName profileImage",
+      });
     res.status(200).json(leaveData);
   } catch (error) {
     console.error(error);
@@ -547,7 +578,6 @@ router.get("/requested/:id", auth, async (req, res) => {
 
 router.get("/all-requested-leaves", auth, async (req, res) => {
   try {
-
     // Fetch leave data with the necessary population
     const leaveData = await Leaves.find({})
       .populate("employee")
@@ -557,8 +587,6 @@ router.get("/all-requested-leaves", auth, async (req, res) => {
     console.error("Error:", error);
     res.status(500).send("Internal Server Error");
   }
-
-
 });
 
 router.put("/status-update", auth, async (req, res) => {
@@ -585,7 +613,9 @@ router.put("/status-update", auth, async (req, res) => {
       return res.status(404).json({ message: "Leave record not found." });
     }
 
-    res.status(200).json({ message: "Leave updated successfully!", leave: updatedLeave });
+    res
+      .status(200)
+      .json({ message: "Leave updated successfully!", leave: updatedLeave });
   } catch (error) {
     console.error("Error updating leave:", error);
 
@@ -596,7 +626,6 @@ router.put("/status-update", auth, async (req, res) => {
 
     res.status(500).json({ message: "Internal Server Error" });
   }
-
 });
 router.delete("/delete-leave/:id", auth, async (req, res) => {
   try {
@@ -639,14 +668,13 @@ router.put("/update-leave", auth, async (req, res) => {
   }
 });
 
-
 router.get("/today-stats", auth, async (req, res) => {
   try {
     const today = new Date().toISOString().split("T")[0];
     const employee = await Employee.find(
       {
         status: "Active",
-        superAdmin: { $ne: true }
+        superAdmin: { $ne: true },
       },
       { password: 0 }
     );
