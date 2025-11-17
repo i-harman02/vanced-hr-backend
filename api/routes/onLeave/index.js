@@ -32,7 +32,7 @@ router.post("/apply-leave", auth, async (req, res) => {
       employee,
       startDate: { $lte: endDate },
       endDate: { $gte: startDate },
-    });
+    }).sort({ createdAt: -1 });
     if (overlappingLeaveRequest) {
       return res
         .status(400)
@@ -77,9 +77,8 @@ router.post("/apply-leave", auth, async (req, res) => {
     const notifyList = Array.isArray(notify) ? notify : [notify];
     const toEmails = notifyList[0] ? [notifyList[0]] : [];
 
-
     const ccList = [
-      ...(notifyList[1] ? [notifyList[1]]: []),
+      ...(notifyList[1] ? [notifyList[1]] : []),
       process.env.CC_MAIL1,
       process.env.CC_MAIL2,
     ];
@@ -106,11 +105,13 @@ router.get("/on-leave", auth, async (req, res) => {
     const employeesOnLeaveToday = await Leaves.find({
       startDate: { $lte: today },
       endDate: { $gte: today },
-    }).populate({
-      path: "employee",
-      select:
-        "userName designation employeeId firstName lastName email personalInformation.telephones address profileImage",
-    });
+    })
+      .populate({
+        path: "employee",
+        select:
+          "userName designation employeeId firstName lastName email personalInformation.telephones address profileImage",
+      })
+      .sort({ createdAt: -1 });
 
     res.status(200).json(employeesOnLeaveToday);
   } catch (error) {
@@ -341,7 +342,8 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
       employee: userId,
     })
       .populate("employee")
-      .populate("approvedBy");
+      .populate("approvedBy")
+      .sort({ createdAt: -1 });
 
     const leavesByYear = leaveData.filter((leave) => {
       const leaveYear = new Date(leave.startDate).getFullYear();
@@ -362,7 +364,7 @@ router.get("/stats/:id", auth, async (req, res) => {
     const leaveData = await Leaves.find({
       employee: userId,
       status: { $ne: "Declined" },
-    });
+    }).sort({ createdAt: -1 });
     const leaveStats = Array.from({ length: 12 }, (_, index) => {
       const month = index + 1;
       const monthName = new Date(currentYear, month - 1, 1).toLocaleString(
@@ -510,7 +512,7 @@ router.get("/history/:id", auth, async (req, res) => {
 
     const leaveData = await Leaves.find({
       employee: userId,
-    });
+    }).sort({ createdAt: -1 });
     const filteredLeaveData = leaveData.filter((leave) => {
       const leaveYear = new Date(leave.startDate).getFullYear();
       return leaveYear === currentYear;
@@ -568,7 +570,8 @@ router.get("/requested/:id", auth, async (req, res) => {
         path: "approvedBy",
         select:
           "userName designation employeeId firstName lastName profileImage",
-      });
+      })
+      .sort({createdAt: -1});
     res.status(200).json(leaveData);
   } catch (error) {
     console.error(error);
@@ -581,7 +584,8 @@ router.get("/all-requested-leaves", auth, async (req, res) => {
     // Fetch leave data with the necessary population
     const leaveData = await Leaves.find({})
       .populate("employee")
-      .populate("approvedBy");
+      .populate("approvedBy")
+      .sort({createdAt: -1});
     res.status(200).json(leaveData);
   } catch (error) {
     console.error("Error:", error);
@@ -699,7 +703,7 @@ router.get("/today-stats", auth, async (req, res) => {
           ],
         },
       ],
-    });
+    }).sort({createdAt: -1});
     const approvedLeaves = leaves.filter((val) => val.status === "Approved");
     const pendingLeaves = leaves.filter((val) => val.status === "Pending");
     const totalEmployee = employee.length;
