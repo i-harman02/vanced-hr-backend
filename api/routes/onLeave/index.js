@@ -558,22 +558,39 @@ router.get("/history/:id", auth, async (req, res) => {
 router.get("/requested/:id", auth, async (req, res) => {
   try {
     const userId = req.params.id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
     const leaveData = await Leaves.find({
       notify: userId,
     })
+      .skip(skip)
+      .limit(limit)
       .populate({
         path: "employee",
         select:
           "userName designation employeeId firstName lastName profileImage",
       })
-      
+
       .populate({
         path: "approvedBy",
         select:
           "userName designation employeeId firstName lastName profileImage",
       })
-      .sort({createdAt: -1});
-    res.status(200).json(leaveData);
+      .sort({ createdAt: -1 });
+    const totalCount = await Leaves.countDocuments({ notify: userId });
+    const totalPages = Math.ceil(totalCount / limit);
+    res.status(200).json({
+      leaveData,
+      pagination: {
+        totalItems: totalCount,
+        totalPages: totalPages,
+        currentPage: page,
+        itemsPerPage: limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -586,7 +603,7 @@ router.get("/all-requested-leaves", auth, async (req, res) => {
     const leaveData = await Leaves.find({})
       .populate("employee")
       .populate("approvedBy")
-      .sort({createdAt: -1});
+      .sort({ createdAt: -1 });
     res.status(200).json(leaveData);
   } catch (error) {
     console.error("Error:", error);
@@ -704,7 +721,7 @@ router.get("/today-stats", auth, async (req, res) => {
           ],
         },
       ],
-    }).sort({createdAt: -1});
+    }).sort({ createdAt: -1 });
     const approvedLeaves = leaves.filter((val) => val.status === "Approved");
     const pendingLeaves = leaves.filter((val) => val.status === "Pending");
     const totalEmployee = employee.length;
