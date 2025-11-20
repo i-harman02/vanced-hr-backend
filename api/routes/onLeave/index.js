@@ -560,7 +560,8 @@ router.get("/requested/:id", auth, async (req, res) => {
     const userId = req.params.id;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+
+   const skip = (page - 1) * limit; 
     const leaveData = await Leaves.find({
       notify: userId,
     })
@@ -742,3 +743,4 @@ router.get("/today-stats", auth, async (req, res) => {
 });
 
 module.exports = router;
+
