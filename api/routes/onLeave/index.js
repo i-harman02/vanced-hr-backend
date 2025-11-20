@@ -555,15 +555,126 @@ router.get("/history/:id", auth, async (req, res) => {
   }
 });
 
+// router.get("/requested/:id", auth, async (req, res) => {
+//   try {
+//     const userId = req.params.id;
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     const skip = (page - 1) * limit;
+//     const leaveData = await Leaves.find({
+//       notify: userId,
+//     })
+//       .skip(skip)
+//       .limit(limit)
+//       .populate({
+//         path: "employee",
+//         select:
+//           "userName designation employeeId firstName lastName profileImage",
+//       })
+
+//       .populate({
+//         path: "approvedBy",
+//         select:
+//           "userName designation employeeId firstName lastName profileImage",
+//       })
+//       .sort({ createdAt: -1 });
+//     const totalCount = await Leaves.countDocuments({ notify: userId });
+//     const totalPages = Math.ceil(totalCount / limit);
+//     res.status(200).json({
+//       leaveData,
+//       pagination: {
+//         totalItems: totalCount,
+//         totalPages: totalPages,
+//         currentPage: page,
+//         itemsPerPage: limit,
+//         hasNextPage: page < totalPages,
+//         hasPrevPage: page > 1,
+//       },
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send("Internal Server Error");
+//   }
+// });
+
+
 router.get("/requested/:id", auth, async (req, res) => {
   try {
     const userId = req.params.id;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    const leaveData = await Leaves.find({
-      notify: userId,
-    })
+
+    const leaveTypeFilter = req.query.type; 
+    const daysFilter = parseInt(req.query.days);
+    const searchQuery = req.query.search; 
+
+    const baseQuery = { notify: userId };
+
+    if (leaveTypeFilter) {
+    
+      baseQuery.leaveType = leaveTypeFilter
+    }
+
+    if (daysFilter && !isNaN(daysFilter) && daysFilter > 0) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
+
+      baseQuery.createdAt = { $gte: cutoffDate };
+    }
+    
+    let finalLeaveQuery = Leaves.find(baseQuery)
+
+    let totalCountQuery = Leaves.countDocuments(baseQuery);
+
+    if (searchQuery) {
+      const employeeSearchCriteria = {
+        firstName: { $regex: searchQuery, $options: 'i' }
+      };
+
+      const matchingEmployees = await Employee.find(employeeSearchCriteria).select('_id');
+      const employeeIds = matchingEmployees.map(emp => emp._id);
+
+      if (employeeIds.length === 0) {
+        return res.status(200).json({
+          leaveData: [],
+          pagination: {
+            totalItems: 0,
+            totalPages: 0,
+            currentPage: page,
+            itemsPerPage: limit,
+            hasNextPage: false,
+            hasPrevPage: false,
+          },
+        });
+      }
+
+      baseQuery.employee = { $in: employeeIds };
+
+      finalLeaveQuery = Leaves.find(baseQuery);
+     
+      totalCountQuery = Leaves.countDocuments(baseQuery);
+    }
+    
+    const totalCount = await totalCountQuery;
+    const totalPages = Math.ceil(totalCount / limit);
+
+    if (page > totalPages && totalPages > 0) {
+       return res.status(200).json({
+          leaveData: [],
+          pagination: {
+            totalItems: totalCount,
+            totalPages: totalPages,
+            currentPage: totalPages,
+            itemsPerPage: limit,
+            hasNextPage: false,
+            hasPrevPage: totalPages > 1,
+          },
+        });
+    }
+// console.log(finalLeaveQuery)
+    const leaveData = await  Leaves.find(finalLeaveQuery)
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate({
@@ -571,15 +682,13 @@ router.get("/requested/:id", auth, async (req, res) => {
         select:
           "userName designation employeeId firstName lastName profileImage",
       })
-
       .populate({
         path: "approvedBy",
         select:
           "userName designation employeeId firstName lastName profileImage",
-      })
-      .sort({ createdAt: -1 });
-    const totalCount = await Leaves.countDocuments({ notify: userId });
-    const totalPages = Math.ceil(totalCount / limit);
+      });
+
+
     res.status(200).json({
       leaveData,
       pagination: {
