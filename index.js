@@ -29,7 +29,9 @@ app.use("/api", routs);
 // app.use(express.static("../public"));
 // app.use("/public", express.static("./public"));
 app.use("/uploads", express.static("./uploads"));
+
 app.listen(PORT, () => {
   console.log("Server is running..." + PORT);
   swaggerDocs(app, PORT);
 });
+
