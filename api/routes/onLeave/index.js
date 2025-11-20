@@ -597,7 +597,6 @@ router.get("/history/:id", auth, async (req, res) => {
 //   }
 // });
 
-
 router.get("/requested/:id", auth, async (req, res) => {
   try {
     const userId = req.params.id;
@@ -605,35 +604,28 @@ router.get("/requested/:id", auth, async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const leaveTypeFilter = req.query.type; 
+    const leaveTypeFilter = req.query.type;
     const daysFilter = parseInt(req.query.days);
-    const searchQuery = req.query.search; 
+    const searchQuery = req.query.search;
 
     const baseQuery = { notify: userId };
 
     if (leaveTypeFilter) {
-    
-      baseQuery.leaveType = leaveTypeFilter
+      baseQuery.leaveType = leaveTypeFilter;
     }
 
     if (daysFilter && !isNaN(daysFilter) && daysFilter > 0) {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
-
       baseQuery.createdAt = { $gte: cutoffDate };
     }
-    
-    let finalLeaveQuery = Leaves.find(baseQuery)
-
-    let totalCountQuery = Leaves.countDocuments(baseQuery);
 
     if (searchQuery) {
-      const employeeSearchCriteria = {
-        firstName: { $regex: searchQuery, $options: 'i' }
-      };
+      const matchingEmployees = await Employee.find({
+        firstName: { $regex: searchQuery, $options: "i" },
+      }).select("_id");
 
-      const matchingEmployees = await Employee.find(employeeSearchCriteria).select('_id');
-      const employeeIds = matchingEmployees.map(emp => emp._id);
+      const employeeIds = matchingEmployees.map((emp) => emp._id);
 
       if (employeeIds.length === 0) {
         return res.status(200).json({
@@ -650,30 +642,12 @@ router.get("/requested/:id", auth, async (req, res) => {
       }
 
       baseQuery.employee = { $in: employeeIds };
-
-      finalLeaveQuery = Leaves.find(baseQuery);
-     
-      totalCountQuery = Leaves.countDocuments(baseQuery);
     }
-    
-    const totalCount = await totalCountQuery;
+
+    const totalCount = await Leaves.countDocuments(baseQuery);
     const totalPages = Math.ceil(totalCount / limit);
 
-    if (page > totalPages && totalPages > 0) {
-       return res.status(200).json({
-          leaveData: [],
-          pagination: {
-            totalItems: totalCount,
-            totalPages: totalPages,
-            currentPage: totalPages,
-            itemsPerPage: limit,
-            hasNextPage: false,
-            hasPrevPage: totalPages > 1,
-          },
-        });
-    }
-// console.log(finalLeaveQuery)
-    const leaveData = await  Leaves.find(finalLeaveQuery)
+    const leaveData = await Leaves.find(baseQuery)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -687,7 +661,6 @@ router.get("/requested/:id", auth, async (req, res) => {
         select:
           "userName designation employeeId firstName lastName profileImage",
       });
-
 
     res.status(200).json({
       leaveData,
