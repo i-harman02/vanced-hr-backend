@@ -555,15 +555,159 @@ router.get("/history/:id", auth, async (req, res) => {
   }
 });
 
+router.get("/requested/:id", auth, async (req, res) => {
+  try {
+    const employerId = req.params.id;
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const selectedMonth = req.query.month;
+    const selectedYear = req.query.year;
+    const customStart = req.query.customStart;
+    const customEnd = req.query.customEnd;
+    const search = req.query.search;
+
+    let query = { employer: employerId };
+    let dateFilter = {};
+
+    if (
+      selectedMonth &&
+      selectedMonth !== "" &&
+      selectedMonth !== "THIS_WEEK" &&
+      selectedMonth !== "13"
+    ) {
+      const monthInt = parseInt(selectedMonth) - 1;
+      const year = selectedYear ? parseInt(selectedYear) : new Date().getFullYear();
+      const start = new Date(year, monthInt, 1);
+      const end = new Date(year, monthInt + 1, 0, 23, 59, 59, 999);
+      dateFilter = { $gte: start, $lte: end };
+    }
+
+    if (selectedYear && (!selectedMonth || selectedMonth === "")) {
+      const year = parseInt(selectedYear);
+      dateFilter = {
+        $gte: new Date(year, 0, 1),
+        $lte: new Date(year, 11, 31, 23, 59, 59, 999),
+      };
+    }
+
+    if (selectedMonth === "THIS_WEEK") {
+      const today = new Date();
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay());
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      dateFilter = {
+        $gte: weekStart,
+        $lte: new Date(weekEnd.setHours(23, 59, 59, 999)),
+      };
+    }
+
+    if (selectedMonth === "13" && customStart && customEnd) {
+      dateFilter = {
+        $gte: new Date(customStart),
+        $lte: new Date(new Date(customEnd).setHours(23, 59, 59, 999)),
+      };
+    }
+
+    if (Object.keys(dateFilter).length > 0) {
+      query.createdAt = dateFilter;
+    }
+
+    if (search && search.trim() !== "") {
+      query.$or = [
+        { reason: { $regex: search, $options: "i" } },
+        { leaveType: { $regex: search, $options: "i" } },
+        { durations: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const leaveData = await Leaves.find(query)
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: "employee",
+        select: "userName designation employeeId firstName lastName profileImage",
+      })
+      .populate({
+        path: "approvedBy",
+        select: "userName designation employeeId firstName lastName profileImage",
+      })
+      .sort({ createdAt: -1 });
+
+    const totalCount = await Leaves.countDocuments(query);
+    const totalPages = Math.ceil(totalCount / limit);
+
+    res.status(200).json({
+      leaveData,
+      pagination: {
+        totalItems: totalCount,
+        totalPages,
+        currentPage: page,
+        itemsPerPage: limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
+  } catch (error) {
+    res.status(500).send("Internal Server Error");
+  }
+});
+
 // router.get("/requested/:id", auth, async (req, res) => {
 //   try {
 //     const userId = req.params.id;
 //     const page = parseInt(req.query.page) || 1;
 //     const limit = parseInt(req.query.limit) || 10;
 //     const skip = (page - 1) * limit;
-//     const leaveData = await Leaves.find({
-//       notify: userId,
-//     })
+
+//     const leaveTypeFilter = req.query.type;
+//     const daysFilter = parseInt(req.query.days);
+//     const searchQuery = req.query.search;
+
+//     const baseQuery = { notify: userId };
+
+//     if (leaveTypeFilter) {
+//       baseQuery.leaveType = leaveTypeFilter;
+//     }
+
+//     if (daysFilter && !isNaN(daysFilter) && daysFilter > 0) {
+//       const cutoffDate = new Date();
+//       cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
+//       baseQuery.createdAt = { $gte: cutoffDate };
+//     }
+
+//     if (searchQuery) {
+//       const matchingEmployees = await Employee.find({
+//         firstName: { $regex: searchQuery, $options: "i" },
+//       }).select("_id");
+
+//       const employeeIds = matchingEmployees.map((emp) => emp._id);
+
+//       if (employeeIds.length === 0) {
+//         return res.status(200).json({
+//           leaveData: [],
+//           pagination: {
+//             totalItems: 0,
+//             totalPages: 0,
+//             currentPage: page,
+//             itemsPerPage: limit,
+//             hasNextPage: false,
+//             hasPrevPage: false,
+//           },
+//         });
+//       }
+
+//       baseQuery.employee = { $in: employeeIds };
+//     }
+
+//     const totalCount = await Leaves.countDocuments(baseQuery);
+//     const totalPages = Math.ceil(totalCount / limit);
+
+//     const leaveData = await Leaves.find(baseQuery)
+//       .sort({ createdAt: -1 })
 //       .skip(skip)
 //       .limit(limit)
 //       .populate({
@@ -571,15 +715,12 @@ router.get("/history/:id", auth, async (req, res) => {
 //         select:
 //           "userName designation employeeId firstName lastName profileImage",
 //       })
-
 //       .populate({
 //         path: "approvedBy",
 //         select:
 //           "userName designation employeeId firstName lastName profileImage",
-//       })
-//       .sort({ createdAt: -1 });
-//     const totalCount = await Leaves.countDocuments({ notify: userId });
-//     const totalPages = Math.ceil(totalCount / limit);
+//       });
+
 //     res.status(200).json({
 //       leaveData,
 //       pagination: {
@@ -596,88 +737,6 @@ router.get("/history/:id", auth, async (req, res) => {
 //     res.status(500).send("Internal Server Error");
 //   }
 // });
-
-router.get("/requested/:id", auth, async (req, res) => {
-  try {
-    const userId = req.params.id;
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-
-    const leaveTypeFilter = req.query.type;
-    const daysFilter = parseInt(req.query.days);
-    const searchQuery = req.query.search;
-
-    const baseQuery = { notify: userId };
-
-    if (leaveTypeFilter) {
-      baseQuery.leaveType = leaveTypeFilter;
-    }
-
-    if (daysFilter && !isNaN(daysFilter) && daysFilter > 0) {
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
-      baseQuery.createdAt = { $gte: cutoffDate };
-    }
-
-    if (searchQuery) {
-      const matchingEmployees = await Employee.find({
-        firstName: { $regex: searchQuery, $options: "i" },
-      }).select("_id");
-
-      const employeeIds = matchingEmployees.map((emp) => emp._id);
-
-      if (employeeIds.length === 0) {
-        return res.status(200).json({
-          leaveData: [],
-          pagination: {
-            totalItems: 0,
-            totalPages: 0,
-            currentPage: page,
-            itemsPerPage: limit,
-            hasNextPage: false,
-            hasPrevPage: false,
-          },
-        });
-      }
-
-      baseQuery.employee = { $in: employeeIds };
-    }
-
-    const totalCount = await Leaves.countDocuments(baseQuery);
-    const totalPages = Math.ceil(totalCount / limit);
-
-    const leaveData = await Leaves.find(baseQuery)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate({
-        path: "employee",
-        select:
-          "userName designation employeeId firstName lastName profileImage",
-      })
-      .populate({
-        path: "approvedBy",
-        select:
-          "userName designation employeeId firstName lastName profileImage",
-      });
-
-    res.status(200).json({
-      leaveData,
-      pagination: {
-        totalItems: totalCount,
-        totalPages: totalPages,
-        currentPage: page,
-        itemsPerPage: limit,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1,
-      },
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Internal Server Error");
-  }
-});
 
 router.get("/all-requested-leaves", auth, async (req, res) => {
   try {

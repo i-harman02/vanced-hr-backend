@@ -29,9 +29,37 @@ app.use("/api", routs);
 // app.use(express.static("../public"));
 // app.use("/public", express.static("./public"));
 app.use("/uploads", express.static("./uploads"));
+// async function updateSpecificLeaveRecord() {
+//   const targetId = "686ce04c632cffa96e565e3c";
+//   const newCreatedAtDate = "2025-01-27";
+
+//   try {
+//     const updateResult = await Leaves.collection.updateOne(
+//       { _id: new mongoose.Types.ObjectId(targetId) }, 
+//       { $set: { createdAt: new Date(newCreatedAtDate) } }
+//     );
+
+//     if (updateResult.matchedCount === 0) {
+//       console.log(`⚠️ Record with ID ${targetId} not found.`);
+//     } else if (updateResult.modifiedCount === 0) {
+//       console.log(`📝 Record with ID ${targetId} already had createdAt set to ${newCreatedAtDate}. No change made.`);
+//     } else {
+//       console.log(`✅ Successfully updated record ID ${targetId}. New createdAt: ${newCreatedAtDate}`);
+//     }
+//   } catch (err) {
+//     console.error(`❌ Error updating record ID ${targetId}:`, err);
+//   }
+// }
+
+// Run the one-time update function
+// updateSpecificLeaveRecord();
 
 app.listen(PORT, () => {
   console.log("Server is running..." + PORT);
   swaggerDocs(app, PORT);
 });
+
+
+
+
 
