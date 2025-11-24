@@ -104,7 +104,6 @@ const path = require("path");
 //   }
 // });
 
-
 router.post("/apply-leave", auth, async (req, res) => {
   try {
     const {
@@ -149,7 +148,7 @@ router.post("/apply-leave", auth, async (req, res) => {
     };
 
     let findManager = await Employee.findOne({ role: "manager" });
-      const newLeave = new Leaves({
+    const newLeave = new Leaves({
       employee,
       startDate,
       endDate,
@@ -472,7 +471,6 @@ router.get("/balance/:id", async (req, res) => {
 //   }
 // });
 
-
 router.get("/all-leaves/:id", auth, async (req, res) => {
   try {
     const decoded = res.locals.decode;
@@ -481,7 +479,7 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-     let projection = { password: 0 };
+    let projection = { password: 0 };
 
     if (loggedInUser.role !== "admin") {
       projection.bankInformation = 0;
@@ -492,28 +490,44 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const daysFilter = parseInt(req.query.days); 
+    const daysFilter = parseInt(req.query.days);
     const searchQuery = req.query.search;
 
     let query = { employee: userId };
 
-       if (!isNaN(daysFilter) && daysFilter > 0) {
+    if (!isNaN(daysFilter) && daysFilter > 0) {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
       query.createdAt = { $gte: cutoffDate };
     }
     let leaveData = await Leaves.find(query)
-      .populate({path: "employee",select: projection})
-      .populate({path: "approvedBy",select: projection})
+      .populate({ path: "employee", select: projection })
+      .populate({ path: "approvedBy", select: projection })
       .sort({ createdAt: -1 });
 
-      if (searchQuery) {
+    //   if (searchQuery) {
+    //   const regex = new RegExp(searchQuery, "i");
+    //   leaveData = leaveData.filter(
+    //     (leave) =>
+    //       (leave.leaveType && regex.test(leave.leaveType)) ||
+    //       (leave.reason && regex.test(leave.reason))
+    //   );
+    // }
+
+    if (searchQuery) {
+      const search = searchQuery.toLowerCase().trim();
       const regex = new RegExp(searchQuery, "i");
-      leaveData = leaveData.filter(
-        (leave) =>
-          (leave.leaveType && regex.test(leave.leaveType)) ||
+
+      leaveData = leaveData.filter((leave) => {
+        const normalizedLeaveType = leave.leaveType
+          ?.replace(/_/g, " ")
+          .toLowerCase();
+
+        return (
+          (normalizedLeaveType && normalizedLeaveType.includes(search)) ||
           (leave.reason && regex.test(leave.reason))
-      );
+        );
+      });
     }
 
     const totalItems = leaveData.length;
@@ -532,7 +546,6 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
         hasPrevPage: page > 1,
       },
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -737,7 +750,6 @@ router.get("/history/:id", auth, async (req, res) => {
   }
 });
 
-
 router.get("/requested/:id", auth, async (req, res) => {
   try {
     const decoded = res.locals.decode;
@@ -756,7 +768,6 @@ router.get("/requested/:id", auth, async (req, res) => {
     const leaveTypeFilter = req.query.leaveType;
 
     let baseQuery = {};
-
 
     if (loggedInUser.role !== "admin") {
       baseQuery.notify = userId;
@@ -850,7 +861,6 @@ router.get("/requested/:id", auth, async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-
 
 // router.get("/requested/:id", auth, async (req, res) => {
 //   try {
