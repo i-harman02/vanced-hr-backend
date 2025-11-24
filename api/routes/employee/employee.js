@@ -124,8 +124,22 @@ router.put("/update-employee", auth, async (req, res) => {
 
   router.get("/list", auth, async (req, res) => {
     try {
+       const decoded = res.locals.decode;   
+    const userId = decoded.id;
+
+    const loggedInUser = await Employee.findById(userId).lean();
+    if (!loggedInUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    let projection = { password: 0 };
+
+    if (loggedInUser.role !== "admin") {
+      projection.bankInformation = 0;
+      projection.address = 0;
+    }
       const usersImg = await Image.find({});
-      const users = await Employee.find({}, { password: 0 });
+      const users = await Employee.find({}, projection).lean();
       const employee = users.map(async (val, idx) => {
         const user_Id = val._id;
         const employeeImg = usersImg.find((elm) => elm.user_Id.equals(user_Id));
@@ -142,12 +156,30 @@ router.put("/update-employee", auth, async (req, res) => {
   });
   router.get("/active-user", auth, async (req, res) => {
     try {
+    const decoded = res.locals.decode;    
+    const userId = decoded.id;
+
+    const loggedInUser = await Employee.findById(userId).lean();
+
+    if (!loggedInUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    let projection = { password: 0 };
+
+    console.log("role:", loggedInUser.role);
+
+    if (loggedInUser.role !== "admin") {
+      projection.bankInformation = 0;
+      projection.address = 0;
+    }
+
       const users = await Employee.find(
         { 
           status: "Active", 
           superAdmin: { $ne: true }
         },
-        { password: 0 }
+        projection,
       );
       res.json(users);
     } catch (error) {

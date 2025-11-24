@@ -21,8 +21,13 @@ app.get("/api/testing", async (req, res) => {
 });
 
 // Authentication routes
-app.use("/api", routs);
-
+// app.use("/api", routs);
+app.use("/api", (req, res, next) => {
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+}, routs);
 // Serve static files from the 'public' directory
 // app.use(express.static(path.join(__dirname, 'public')));
 

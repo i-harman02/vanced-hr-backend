@@ -10,6 +10,101 @@ const sendMail = require("../../../helpers/nodemailer");
 const path = require("path");
 //const nodemailer = require("nodemailer");
 
+// router.post("/apply-leave", auth, async (req, res) => {
+//   try {
+//     const {
+//       employee,
+//       startDate,
+//       endDate,
+//       leaveType,
+//       noOfDays,
+//       reason,
+//       notify,
+//       approvedBy,
+//       status,
+//       startTime,
+//       endTime,
+//       durations,
+//     } = req.body;
+//     const startDateObj = new Date(startDate);
+//     const endDateObj = new Date(endDate);
+//     const overlappingLeaveRequest = await Leaves.findOne({
+//       employee,
+//       startDate: { $lte: endDate },
+//       endDate: { $gte: startDate },
+//     }).sort({ createdAt: -1 });
+//     if (overlappingLeaveRequest) {
+//       return res
+//         .status(400)
+//         .json({ message: "Leave request overlaps with existing leave" });
+//     }
+//     const employeeDetails = await Employee.findById(employee);
+
+//     if (!employeeDetails) {
+//       return res.status(400).json({ message: "Employee not found" });
+//     }
+//     const replacements = {
+//       EmployeeName: `${employeeDetails.firstName} ${employeeDetails.lastName}`,
+//       Designation: employeeDetails.role,
+//       LeaveType: leaveType,
+//       StartDate: startDateObj.toLocaleDateString(),
+//       EndDate: endDateObj.toLocaleDateString(),
+//       NumberOfDays: noOfDays,
+//       Reason: reason,
+//     };
+
+//     let findManager = await Employee.findOne({ role: "manager" });
+
+//     const newLeave = new Leaves({
+//       employee,
+//       startDate,
+//       endDate,
+//       leaveType,
+//       noOfDays,
+//       reason,
+//       notify: findManager ? [...notify, findManager._id] : notify,
+//       approvedBy,
+//       status,
+//       startTime,
+//       endTime,
+//       durations,
+//     });
+
+//     await newLeave.save();
+
+//     const templateName = "leaveTemplate.html";
+
+//     const notifyList = Array.isArray(notify) ? notify : [notify];
+//     const toEmails = [process.env.HR_MAIL];
+//     // const toEmails = notifyList[0] ? [notifyList[0]] : [];
+
+//     // const ccList = [
+//     //   ...(notifyList[1] ? [notifyList[1]] : []),
+//     //   process.env.CC_MAIL1,
+//     //   process.env.CC_MAIL2,
+//     // ];
+//     const ccList = [
+//       ...notifyList.filter((email) => email && email !== process.env.HR_MAIL),
+//       process.env.CC_MAIL1,
+//       process.env.CC_MAIL2,
+//     ];
+
+//     await sendMail({
+//       to: toEmails,
+//       cc: ccList,
+//       subject: "Leave Information",
+//       templateName,
+//       replacements,
+//     });
+
+//     res.status(201).json({ message: "Leave applied successfully" });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Something went wrong" });
+//   }
+// });
+
+
 router.post("/apply-leave", auth, async (req, res) => {
   try {
     const {
@@ -54,8 +149,7 @@ router.post("/apply-leave", auth, async (req, res) => {
     };
 
     let findManager = await Employee.findOne({ role: "manager" });
-
-    const newLeave = new Leaves({
+      const newLeave = new Leaves({
       employee,
       startDate,
       endDate,
@@ -334,23 +428,101 @@ router.get("/balance/:id", async (req, res) => {
   }
 });
 
+// router.get("/all-leaves/:id", auth, async (req, res) => {
+//   try {
+//     const userId = req.params.id;
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     const skip = (page - 1) * limit;
+
+//     const currentYear = new Date().getFullYear();
+//     const leaveData = await Leaves.find({
+//       employee: userId, //Important
+//     })
+//       .populate("employee")
+//       .populate("approvedBy")
+//       .sort({ createdAt: -1 });
+
+//     const leavesByYear = leaveData.filter((leave) => {
+//       const leaveYear = new Date(leave.startDate).getFullYear();
+//       return leaveYear;
+//       //=== currentYear;
+//     });
+//     const totalItems = leavesByYear.length;
+//     const totalPages = Math.ceil(totalItems / limit);
+
+//     const paginatedLeaves = leavesByYear.slice(skip, skip + limit);
+
+//     // res.status(200).json(leavesByYear);
+//     res.status(200).json({
+//       leaveData: paginatedLeaves,
+//       pagination: {
+//         totalItems,
+//         totalPages,
+//         currentPage: page,
+//         itemsPerPage: limit,
+//         hasNextPage: page < totalPages,
+//         hasPrevPage: page > 1,
+//       },
+//     });
+
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send("Internal Server Error");
+//   }
+// });
+
+
 router.get("/all-leaves/:id", auth, async (req, res) => {
   try {
     const userId = req.params.id;
-    const currentYear = new Date().getFullYear();
-    const leaveData = await Leaves.find({
-      employee: userId,
-    })
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const daysFilter = parseInt(req.query.days); 
+    const searchQuery = req.query.search;
+
+    let query = { employee: userId };
+
+
+       if (!isNaN(daysFilter) && daysFilter > 0) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
+      query.createdAt = { $gte: cutoffDate };
+    }
+
+    let leaveData = await Leaves.find(query)
       .populate("employee")
       .populate("approvedBy")
       .sort({ createdAt: -1 });
 
-    const leavesByYear = leaveData.filter((leave) => {
-      const leaveYear = new Date(leave.startDate).getFullYear();
-      return leaveYear;
-      //=== currentYear;
+      if (searchQuery) {
+      const regex = new RegExp(searchQuery, "i");
+      leaveData = leaveData.filter(
+        (leave) =>
+          (leave.leaveType && regex.test(leave.leaveType)) ||
+          (leave.reason && regex.test(leave.reason))
+      );
+    }
+
+    const totalItems = leaveData.length;
+    const totalPages = Math.ceil(totalItems / limit);
+
+    const paginatedLeaves = leaveData.slice(skip, skip + limit);
+
+    res.status(200).json({
+      leaveData: paginatedLeaves,
+      pagination: {
+        totalItems,
+        totalPages,
+        currentPage: page,
+        itemsPerPage: limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
     });
-    res.status(200).json(leavesByYear);
+
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");
@@ -554,97 +726,106 @@ router.get("/history/:id", auth, async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-
 router.get("/requested/:id", auth, async (req, res) => {
   try {
-    const employerId = req.params.id;
+    const decoded = res.locals.decode;
+    const loggedInUser = await Employee.findById(decoded.id).lean();
+    if (!loggedInUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
+    const userId = req.params.id;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const selectedMonth = req.query.month;
-    const selectedYear = req.query.year;
-    const customStart = req.query.customStart;
-    const customEnd = req.query.customEnd;
-    const search = req.query.search;
+    const daysFilter = parseInt(req.query.days);
+    const searchQuery = req.query.search;
+    const leaveTypeFilter = req.query.leaveType;
 
-    let query = { employer: employerId };
-    let dateFilter = {};
+    let baseQuery = {};
 
-    if (
-      selectedMonth &&
-      selectedMonth !== "" &&
-      selectedMonth !== "THIS_WEEK" &&
-      selectedMonth !== "13"
-    ) {
-      const monthInt = parseInt(selectedMonth) - 1;
-      const year = selectedYear ? parseInt(selectedYear) : new Date().getFullYear();
-      const start = new Date(year, monthInt, 1);
-      const end = new Date(year, monthInt + 1, 0, 23, 59, 59, 999);
-      dateFilter = { $gte: start, $lte: end };
+    if (loggedInUser.role !== "admin") {
+      baseQuery.notify = userId;
     }
 
-    if (selectedYear && (!selectedMonth || selectedMonth === "")) {
-      const year = parseInt(selectedYear);
-      dateFilter = {
-        $gte: new Date(year, 0, 1),
-        $lte: new Date(year, 11, 31, 23, 59, 59, 999),
-      };
+    if (leaveTypeFilter && leaveTypeFilter.toUpperCase() !== "ALL") {
+      baseQuery.leaveType = leaveTypeFilter;
     }
 
-    if (selectedMonth === "THIS_WEEK") {
-      const today = new Date();
-      const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() - today.getDay());
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 6);
-      dateFilter = {
-        $gte: weekStart,
-        $lte: new Date(weekEnd.setHours(23, 59, 59, 999)),
-      };
+    if (daysFilter && !isNaN(daysFilter) && daysFilter > 0) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
+      baseQuery.createdAt = { $gte: cutoffDate };
     }
 
-    if (selectedMonth === "13" && customStart && customEnd) {
-      dateFilter = {
-        $gte: new Date(customStart),
-        $lte: new Date(new Date(customEnd).setHours(23, 59, 59, 999)),
-      };
+    if (searchQuery) {
+      const word = searchQuery.trim();
+
+      let matchingEmployees = await Employee.find({
+        firstName: { $regex: word, $options: "i" },
+      }).select("_id");
+
+      if (matchingEmployees.length === 0) {
+        matchingEmployees = await Employee.find({
+          lastName: { $regex: word, $options: "i" },
+        }).select("_id");
+      }
+
+      if (matchingEmployees.length === 0) {
+        const nameParts = word.split(/\s+/);
+        if (nameParts.length > 1) {
+          const firstPart = nameParts[0];
+          const lastPart = nameParts[nameParts.length - 1];
+          matchingEmployees = await Employee.find({
+            firstName: { $regex: firstPart, $options: "i" },
+            lastName: { $regex: lastPart, $options: "i" },
+          }).select("_id");
+        }
+      }
+
+      const employeeIds = matchingEmployees.map((emp) => emp._id);
+
+      if (employeeIds.length === 0) {
+        return res.status(200).json({
+          leaveData: [],
+          pagination: {
+            totalItems: 0,
+            totalPages: 0,
+            currentPage: page,
+            itemsPerPage: limit,
+            hasNextPage: false,
+            hasPrevPage: false,
+          },
+        });
+      }
+
+      baseQuery.employee = { $in: employeeIds };
     }
 
-    if (Object.keys(dateFilter).length > 0) {
-      query.createdAt = dateFilter;
-    }
+    const totalCount = await Leaves.countDocuments(baseQuery);
+    const totalPages = Math.ceil(totalCount / limit);
 
-    if (search && search.trim() !== "") {
-      query.$or = [
-        { reason: { $regex: search, $options: "i" } },
-        { leaveType: { $regex: search, $options: "i" } },
-        { durations: { $regex: search, $options: "i" } },
-      ];
-    }
-
-    const leaveData = await Leaves.find(query)
+    const leaveData = await Leaves.find(baseQuery)
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate({
         path: "employee",
-        select: "userName designation employeeId firstName lastName profileImage",
+        select:
+          "userName designation employeeId firstName lastName profileImage",
       })
       .populate({
         path: "approvedBy",
-        select: "userName designation employeeId firstName lastName profileImage",
-      })
-      .sort({ createdAt: -1 });
-
-    const totalCount = await Leaves.countDocuments(query);
-    const totalPages = Math.ceil(totalCount / limit);
+        select:
+          "userName designation employeeId firstName lastName profileImage",
+      });
 
     res.status(200).json({
       leaveData,
       pagination: {
         totalItems: totalCount,
-        totalPages,
+        totalPages: totalPages,
         currentPage: page,
         itemsPerPage: limit,
         hasNextPage: page < totalPages,
@@ -652,6 +833,7 @@ router.get("/requested/:id", auth, async (req, res) => {
       },
     });
   } catch (error) {
+    console.error(error);
     res.status(500).send("Internal Server Error");
   }
 });
@@ -663,13 +845,13 @@ router.get("/requested/:id", auth, async (req, res) => {
 //     const limit = parseInt(req.query.limit) || 10;
 //     const skip = (page - 1) * limit;
 
-//     const leaveTypeFilter = req.query.type;
 //     const daysFilter = parseInt(req.query.days);
 //     const searchQuery = req.query.search;
 
 //     const baseQuery = { notify: userId };
 
-//     if (leaveTypeFilter) {
+//     const leaveTypeFilter = req.query.leaveType;
+//     if (leaveTypeFilter && leaveTypeFilter.toUpperCase() !== "ALL") {
 //       baseQuery.leaveType = leaveTypeFilter;
 //     }
 
@@ -678,11 +860,31 @@ router.get("/requested/:id", auth, async (req, res) => {
 //       cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
 //       baseQuery.createdAt = { $gte: cutoffDate };
 //     }
-
+    
 //     if (searchQuery) {
-//       const matchingEmployees = await Employee.find({
-//         firstName: { $regex: searchQuery, $options: "i" },
+//       const word = searchQuery.trim();
+
+//       let matchingEmployees = await Employee.find({
+//         firstName: { $regex: word, $options: "i" },
 //       }).select("_id");
+
+//       if (matchingEmployees.length === 0) {
+//         matchingEmployees = await Employee.find({
+//           lastName: { $regex: word, $options: "i" },
+//         }).select("_id");
+//       }
+
+//       if (matchingEmployees.length === 0) {
+//         const nameParts = word.split(/\s+/);
+//         if (nameParts.length > 1) {
+//           const firstPart = nameParts[0];
+//           const lastPart = nameParts[nameParts.length - 1];
+//           matchingEmployees = await Employee.find({
+//             firstName: { $regex: firstPart, $options: "i" },
+//             lastName: { $regex: lastPart, $options: "i" },
+//           }).select("_id");
+//         }
+//       }
 
 //       const employeeIds = matchingEmployees.map((emp) => emp._id);
 
@@ -883,4 +1085,3 @@ router.get("/today-stats", auth, async (req, res) => {
 });
 
 module.exports = router;
-
