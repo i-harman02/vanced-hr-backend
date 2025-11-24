@@ -502,7 +502,6 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
       cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
       query.createdAt = { $gte: cutoffDate };
     }
-
     let leaveData = await Leaves.find(query)
       .populate({path: "employee",select: projection})
       .populate({path: "approvedBy",select: projection})

@@ -106,6 +106,7 @@ router.put("/update-employee", auth, async (req, res) => {
     }
   });
 
+  
   router.put("/employee-status/:id", auth, async (req, res) => {
     try {
       const userId = req.params.id;
