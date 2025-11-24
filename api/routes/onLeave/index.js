@@ -475,6 +475,18 @@ router.get("/balance/:id", async (req, res) => {
 
 router.get("/all-leaves/:id", auth, async (req, res) => {
   try {
+    const decoded = res.locals.decode;
+    const loggedInUser = await Employee.findById(decoded.id).lean();
+    if (!loggedInUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+     let projection = { password: 0 };
+
+    if (loggedInUser.role !== "admin") {
+      projection.bankInformation = 0;
+      projection.address = 0;
+    }
     const userId = req.params.id;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -485,7 +497,6 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
 
     let query = { employee: userId };
 
-
        if (!isNaN(daysFilter) && daysFilter > 0) {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
@@ -493,8 +504,8 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
     }
 
     let leaveData = await Leaves.find(query)
-      .populate("employee")
-      .populate("approvedBy")
+      .populate({path: "employee",select: projection})
+      .populate({path: "approvedBy",select: projection})
       .sort({ createdAt: -1 });
 
       if (searchQuery) {
