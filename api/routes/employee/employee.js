@@ -124,7 +124,7 @@ router.put("/update-employee", auth, async (req, res) => {
 
   router.get("/list", auth, async (req, res) => {
     try {
-    const decoded = res.locals.decode;   
+    const decoded = res.locals.decode;
     const userId = decoded.id;
 
     const loggedInUser = await Employee.findById(userId).lean();
@@ -139,7 +139,7 @@ router.put("/update-employee", auth, async (req, res) => {
       projection.address = 0;
     }
       const usersImg = await Image.find({});
-      const users = await Employee.find({}, { password: 0 });
+      const users = await Employee.find({}, projection).lean();
       const employee = users.map(async (val, idx) => {
         const user_Id = val._id;
         const employeeImg = usersImg.find((elm) => elm.user_Id.equals(user_Id));
@@ -154,9 +154,10 @@ router.put("/update-employee", auth, async (req, res) => {
       res.status(500).json({ message: "Something went wrong" });
     }
   });
+
   router.get("/active-user", auth, async (req, res) => {
     try {
-     const decoded = res.locals.decode;    
+     const decoded = res.locals.decode;
     const userId = decoded.id;
 
     const loggedInUser = await Employee.findById(userId).lean();
@@ -172,7 +173,8 @@ router.put("/update-employee", auth, async (req, res) => {
       projection.bankInformation = 0;
       projection.address = 0;
     }
-        const users = await Employee.find(
+
+      const users = await Employee.find(
         { 
           status: "Active", 
           superAdmin: { $ne: true }

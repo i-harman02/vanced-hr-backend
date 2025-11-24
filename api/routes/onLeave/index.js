@@ -10,6 +10,101 @@ const sendMail = require("../../../helpers/nodemailer");
 const path = require("path");
 //const nodemailer = require("nodemailer");
 
+// router.post("/apply-leave", auth, async (req, res) => {
+//   try {
+//     const {
+//       employee,
+//       startDate,
+//       endDate,
+//       leaveType,
+//       noOfDays,
+//       reason,
+//       notify,
+//       approvedBy,
+//       status,
+//       startTime,
+//       endTime,
+//       durations,
+//     } = req.body;
+//     const startDateObj = new Date(startDate);
+//     const endDateObj = new Date(endDate);
+//     const overlappingLeaveRequest = await Leaves.findOne({
+//       employee,
+//       startDate: { $lte: endDate },
+//       endDate: { $gte: startDate },
+//     }).sort({ createdAt: -1 });
+//     if (overlappingLeaveRequest) {
+//       return res
+//         .status(400)
+//         .json({ message: "Leave request overlaps with existing leave" });
+//     }
+//     const employeeDetails = await Employee.findById(employee);
+
+//     if (!employeeDetails) {
+//       return res.status(400).json({ message: "Employee not found" });
+//     }
+//     const replacements = {
+//       EmployeeName: `${employeeDetails.firstName} ${employeeDetails.lastName}`,
+//       Designation: employeeDetails.role,
+//       LeaveType: leaveType,
+//       StartDate: startDateObj.toLocaleDateString(),
+//       EndDate: endDateObj.toLocaleDateString(),
+//       NumberOfDays: noOfDays,
+//       Reason: reason,
+//     };
+
+//     let findManager = await Employee.findOne({ role: "manager" });
+
+//     const newLeave = new Leaves({
+//       employee,
+//       startDate,
+//       endDate,
+//       leaveType,
+//       noOfDays,
+//       reason,
+//       notify: findManager ? [...notify, findManager._id] : notify,
+//       approvedBy,
+//       status,
+//       startTime,
+//       endTime,
+//       durations,
+//     });
+
+//     await newLeave.save();
+
+//     const templateName = "leaveTemplate.html";
+
+//     const notifyList = Array.isArray(notify) ? notify : [notify];
+//     const toEmails = [process.env.HR_MAIL];
+//     // const toEmails = notifyList[0] ? [notifyList[0]] : [];
+
+//     // const ccList = [
+//     //   ...(notifyList[1] ? [notifyList[1]] : []),
+//     //   process.env.CC_MAIL1,
+//     //   process.env.CC_MAIL2,
+//     // ];
+//     const ccList = [
+//       ...notifyList.filter((email) => email && email !== process.env.HR_MAIL),
+//       process.env.CC_MAIL1,
+//       process.env.CC_MAIL2,
+//     ];
+
+//     await sendMail({
+//       to: toEmails,
+//       cc: ccList,
+//       subject: "Leave Information",
+//       templateName,
+//       replacements,
+//     });
+
+//     res.status(201).json({ message: "Leave applied successfully" });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Something went wrong" });
+//   }
+// });
+
+
 router.post("/apply-leave", auth, async (req, res) => {
   try {
     const {
@@ -54,8 +149,7 @@ router.post("/apply-leave", auth, async (req, res) => {
     };
 
     let findManager = await Employee.findOne({ role: "manager" });
-
-    const newLeave = new Leaves({
+      const newLeave = new Leaves({
       employee,
       startDate,
       endDate,
@@ -334,6 +428,51 @@ router.get("/balance/:id", async (req, res) => {
   }
 });
 
+// router.get("/all-leaves/:id", auth, async (req, res) => {
+//   try {
+//     const userId = req.params.id;
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     const skip = (page - 1) * limit;
+
+//     const currentYear = new Date().getFullYear();
+//     const leaveData = await Leaves.find({
+//       employee: userId, //Important
+//     })
+//       .populate("employee")
+//       .populate("approvedBy")
+//       .sort({ createdAt: -1 });
+
+//     const leavesByYear = leaveData.filter((leave) => {
+//       const leaveYear = new Date(leave.startDate).getFullYear();
+//       return leaveYear;
+//       //=== currentYear;
+//     });
+//     const totalItems = leavesByYear.length;
+//     const totalPages = Math.ceil(totalItems / limit);
+
+//     const paginatedLeaves = leavesByYear.slice(skip, skip + limit);
+
+//     // res.status(200).json(leavesByYear);
+//     res.status(200).json({
+//       leaveData: paginatedLeaves,
+//       pagination: {
+//         totalItems,
+//         totalPages,
+//         currentPage: page,
+//         itemsPerPage: limit,
+//         hasNextPage: page < totalPages,
+//         hasPrevPage: page > 1,
+//       },
+//     });
+
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send("Internal Server Error");
+//   }
+// });
+
+
 router.get("/all-leaves/:id", auth, async (req, res) => {
   try {
     const userId = req.params.id;
@@ -358,9 +497,9 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
       .populate("approvedBy")
       .sort({ createdAt: -1 });
 
-     if (searchQuery) {
-      	const regex = new RegExp(searchQuery, "i");
-      	leaveData = leaveData.filter(
+      if (searchQuery) {
+      const regex = new RegExp(searchQuery, "i");
+      leaveData = leaveData.filter(
         (leave) =>
           (leave.leaveType && regex.test(leave.leaveType)) ||
           (leave.reason && regex.test(leave.reason))
@@ -606,27 +745,23 @@ router.get("/requested/:id", auth, async (req, res) => {
     const searchQuery = req.query.search;
     const leaveTypeFilter = req.query.leaveType;
 
-    // Base query
     let baseQuery = {};
 
-    // If not admin, filter by notify user
+
     if (loggedInUser.role !== "admin") {
       baseQuery.notify = userId;
     }
 
-    // Apply leaveType filter
     if (leaveTypeFilter && leaveTypeFilter.toUpperCase() !== "ALL") {
       baseQuery.leaveType = leaveTypeFilter;
     }
 
-    // Apply days filter
     if (daysFilter && !isNaN(daysFilter) && daysFilter > 0) {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
       baseQuery.createdAt = { $gte: cutoffDate };
     }
 
-    // Apply search filter on employee firstName/lastName
     if (searchQuery) {
       const word = searchQuery.trim();
 
@@ -714,13 +849,13 @@ router.get("/requested/:id", auth, async (req, res) => {
 //     const limit = parseInt(req.query.limit) || 10;
 //     const skip = (page - 1) * limit;
 
-//     const leaveTypeFilter = req.query.type;
 //     const daysFilter = parseInt(req.query.days);
 //     const searchQuery = req.query.search;
 
 //     const baseQuery = { notify: userId };
 
-//     if (leaveTypeFilter) {
+//     const leaveTypeFilter = req.query.leaveType;
+//     if (leaveTypeFilter && leaveTypeFilter.toUpperCase() !== "ALL") {
 //       baseQuery.leaveType = leaveTypeFilter;
 //     }
 
@@ -729,11 +864,30 @@ router.get("/requested/:id", auth, async (req, res) => {
 //       cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
 //       baseQuery.createdAt = { $gte: cutoffDate };
 //     }
-
 //     if (searchQuery) {
-//       const matchingEmployees = await Employee.find({
-//         firstName: { $regex: searchQuery, $options: "i" },
+//       const word = searchQuery.trim();
+
+//       let matchingEmployees = await Employee.find({
+//         firstName: { $regex: word, $options: "i" },
 //       }).select("_id");
+
+//       if (matchingEmployees.length === 0) {
+//         matchingEmployees = await Employee.find({
+//           lastName: { $regex: word, $options: "i" },
+//         }).select("_id");
+//       }
+
+//       if (matchingEmployees.length === 0) {
+//         const nameParts = word.split(/\s+/);
+//         if (nameParts.length > 1) {
+//           const firstPart = nameParts[0];
+//           const lastPart = nameParts[nameParts.length - 1];
+//           matchingEmployees = await Employee.find({
+//             firstName: { $regex: firstPart, $options: "i" },
+//             lastName: { $regex: lastPart, $options: "i" },
+//           }).select("_id");
+//         }
+//       }
 
 //       const employeeIds = matchingEmployees.map((emp) => emp._id);
 
@@ -934,4 +1088,3 @@ router.get("/today-stats", auth, async (req, res) => {
 });
 
 module.exports = router;
-
