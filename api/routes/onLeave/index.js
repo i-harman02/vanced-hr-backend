@@ -492,8 +492,11 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
 
     const daysFilter = parseInt(req.query.days);
     const searchQuery = req.query.search;
-
+    const statusFilter = req.query.status;
     let query = { employee: userId };
+      if (statusFilter && statusFilter.toLowerCase() !== "all") {
+  query.status = new RegExp(`^${statusFilter.trim()}$`, "i");
+}
 
     if (!isNaN(daysFilter) && daysFilter > 0) {
       const cutoffDate = new Date();
@@ -513,7 +516,7 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
     //       (leave.reason && regex.test(leave.reason))
     //   );
     // }
-
+  
     if (searchQuery) {
       const search = searchQuery.toLowerCase().trim();
       const regex = new RegExp(searchQuery, "i");
@@ -757,7 +760,6 @@ router.get("/requested/:id", auth, async (req, res) => {
     if (!loggedInUser) {
       return res.status(404).json({ message: "User not found" });
     }
-
     const userId = req.params.id;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -766,22 +768,63 @@ router.get("/requested/:id", auth, async (req, res) => {
     const daysFilter = parseInt(req.query.days);
     const searchQuery = req.query.search;
     const leaveTypeFilter = req.query.leaveType;
+    const statusFilter = req.query.status;
+    const startDate = req.query.start; 
+    const endDate = req.query.end; 
+    
 
     let baseQuery = {};
+    function convertToISO(dateStr) {
+       if (!dateStr) return null;
 
-    if (loggedInUser.role !== "admin") {
-      baseQuery.notify = userId;
-    }
+  const [day, month, year] = dateStr.split("/"); 
+  return `${year}-${month}-${day}`; 
+}
 
+
+if (loggedInUser.role !== "admin") {
+  baseQuery.notify = userId;
+}
     if (leaveTypeFilter && leaveTypeFilter.toUpperCase() !== "ALL") {
       baseQuery.leaveType = leaveTypeFilter;
     }
+  if (daysFilter && !isNaN(daysFilter)) {
+  if (daysFilter === 1) {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
 
-    if (daysFilter && !isNaN(daysFilter) && daysFilter > 0) {
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
-      baseQuery.createdAt = { $gte: cutoffDate };
-    }
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+
+    baseQuery.createdAt = { $gte: start, $lte: end };
+  } else if (daysFilter > 1) {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
+    baseQuery.createdAt = { $gte: cutoffDate };
+  }
+}
+if (startDate) {
+  baseQuery.startDate = {};
+
+  if (startDate) {
+    const isoStart = convertToISO(startDate); 
+    const start = new Date(isoStart);
+    start.setHours(0, 0, 0, 0);
+    baseQuery.startDate.$gte = start;
+  }
+
+  if (endDate) {
+    const isoEnd = convertToISO(endDate);    
+    const end = new Date(isoEnd);
+    end.setHours(23, 59, 59, 999);
+     baseQuery.startDate.$lte = end;
+  }
+}
+
+
+if (statusFilter && statusFilter.toLowerCase() !== "all") {
+  baseQuery.status = new RegExp(`^${statusFilter.trim()}$`, "i");
+}
 
     if (searchQuery) {
       const word = searchQuery.trim();
@@ -831,7 +874,7 @@ router.get("/requested/:id", auth, async (req, res) => {
     const totalPages = Math.ceil(totalCount / limit);
 
     const leaveData = await Leaves.find(baseQuery)
-      .sort({ createdAt: -1 })
+      .sort({ startDate:-1 })
       .skip(skip)
       .limit(limit)
       .populate({
@@ -965,17 +1008,159 @@ router.get("/requested/:id", auth, async (req, res) => {
 
 router.get("/all-requested-leaves", auth, async (req, res) => {
   try {
-    // Fetch leave data with the necessary population
-    const leaveData = await Leaves.find({})
-      .populate("employee")
-      .populate("approvedBy")
-      .sort({ createdAt: -1 });
-    res.status(200).json(leaveData);
+    const decoded = res.locals.decode;
+    const loggedInUser = await Employee.findById(decoded.id).lean();
+    if (!loggedInUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+   
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    
+    const daysFilter = parseInt(req.query.days);
+    const searchQuery = req.query.search;
+    const leaveTypeFilter = req.query.leaveType;
+    const statusFilter = req.query.status;
+    // const startDate = req.query.start;
+    // const endDate = req.query.end;
+
+    let baseQuery = {}; 
+
+    // function convertToISO(dateStr) {
+    //   if (!dateStr) return null;
+    //   const [day, month, year] = dateStr.split("/");
+    //   return `${year}-${month}-${day}`;
+    // }
+
+ 
+    if (leaveTypeFilter && leaveTypeFilter.toUpperCase() !== "ALL") {
+      baseQuery.leaveType = leaveTypeFilter;
+    }
+
+   
+    if (daysFilter && !isNaN(daysFilter)) {
+      if (daysFilter === 1) {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+
+        const end = new Date();
+        end.setHours(23, 59, 59, 999);
+
+        baseQuery.createdAt = { $gte: start, $lte: end };
+      } else if (daysFilter > 1) {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
+        baseQuery.createdAt = { $gte: cutoffDate };
+      }
+    }
+
+    // // Date Range Filter
+    // if (startDate || endDate) {
+    //   baseQuery.startDate = {};
+
+    //   if (startDate) {
+    //     const isoStart = convertToISO(startDate);
+    //     const start = new Date(isoStart);
+    //     start.setHours(0, 0, 0, 0);
+    //     baseQuery.startDate.$gte = start;
+    //   }
+
+    //   if (endDate) {
+    //     const isoEnd = convertToISO(endDate);
+    //     const end = new Date(isoEnd);
+    //     end.setHours(23, 59, 59, 999);
+    //     baseQuery.startDate.$lte = end;
+    //   }
+    // }
+
+
+    if (statusFilter && statusFilter.toLowerCase() !== "all") {
+      baseQuery.status = new RegExp(`^${statusFilter.trim()}$`, "i");
+    }
+
+   
+    if (searchQuery) {
+      const word = searchQuery.trim();
+
+      let matchingEmployees = await Employee.find({
+        firstName: { $regex: word, $options: "i" },
+      }).select("_id");
+
+      if (matchingEmployees.length === 0) {
+        matchingEmployees = await Employee.find({
+          lastName: { $regex: word, $options: "i" },
+        }).select("_id");
+      }
+
+      if (matchingEmployees.length === 0) {
+        const nameParts = word.split(/\s+/);
+        if (nameParts.length > 1) {
+          const firstPart = nameParts[0];
+          const lastPart = nameParts[nameParts.length - 1];
+          matchingEmployees = await Employee.find({
+            firstName: { $regex: firstPart, $options: "i" },
+            lastName: { $regex: lastPart, $options: "i" },
+          }).select("_id");
+        }
+      }
+
+      const employeeIds = matchingEmployees.map((emp) => emp._id);
+
+      if (employeeIds.length === 0) {
+        return res.status(200).json({
+          leaveData: [],
+          pagination: {
+            totalItems: 0,
+            totalPages: 0,
+            currentPage: page,
+            itemsPerPage: limit,
+            hasNextPage: false,
+            hasPrevPage: false,
+          },
+        });
+      }
+
+      baseQuery.employee = { $in: employeeIds };
+    }
+
+    const totalCount = await Leaves.countDocuments(baseQuery);
+    const totalPages = Math.ceil(totalCount / limit);
+
+    const leaveData = await Leaves.find(baseQuery)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: "employee",
+        select:
+          "userName designation employeeId firstName lastName profileImage",
+      })
+      .populate({
+        path: "approvedBy",
+        select:
+          "userName designation employeeId firstName lastName profileImage",
+      });
+    res.status(200).json({
+      leaveData,
+      pagination: {
+        totalItems: totalCount,
+        totalPages: totalPages,
+        currentPage: page,
+        itemsPerPage: limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
   } catch (error) {
     console.error("Error:", error);
     res.status(500).send("Internal Server Error");
   }
 });
+
+
 
 router.put("/status-update", auth, async (req, res) => {
   try {
