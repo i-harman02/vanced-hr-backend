@@ -537,7 +537,6 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
     const totalPages = Math.ceil(totalItems / limit);
 
     const paginatedLeaves = leaveData.slice(skip, skip + limit);
-
     res.status(200).json({
       leaveData: paginatedLeaves,
       pagination: {
@@ -774,8 +773,8 @@ router.get("/requested/:id", auth, async (req, res) => {
     
 
     let baseQuery = {};
-if (loggedInUser.role !== "admin") {
-  baseQuery.notify = userId;
+    if (loggedInUser.role !== "admin") {
+    baseQuery.notify = userId;
 }
     if (leaveTypeFilter && leaveTypeFilter.toUpperCase() !== "ALL") {
       baseQuery.leaveType = leaveTypeFilter;
@@ -788,11 +787,16 @@ if (loggedInUser.role !== "admin") {
     const end = new Date();
     end.setHours(23, 59, 59, 999);
 
-    baseQuery.createdAt = { $gte: start, $lte: end };
+    baseQuery.startDate = { $gte: start, $lte: end };
   } else if (daysFilter > 1) {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
-    baseQuery.createdAt = { $gte: cutoffDate };
+    // const cutoffDate = new Date();
+    // cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
+           const start = new Date(now);
+           start.setDate(start.getDate() - (daysFilter - 1)); 
+           start.setHours(0, 0, 0, 0);
+           const end = new Date(now);
+           end.setHours(23, 59, 59, 999);
+           baseQuery.startDate = { $gte: start, $lte: end };
   }
 }
 
@@ -1065,19 +1069,22 @@ router.get("/all-requested-leaves", auth, async (req, res) => {
 
         const end = new Date();
         end.setHours(23, 59, 59, 999);
-
-        baseQuery.createdAt = { $gte: start, $lte: end };
+        baseQuery.startDate = { $gte: start, $lte: end };
       } else if (daysFilter > 1) {
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
-        baseQuery.createdAt = { $gte: cutoffDate };
+        // const cutoffDate = new Date();
+        // cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
+           const start = new Date(now);
+           start.setDate(start.getDate() - (daysFilter - 1)); 
+           start.setHours(0, 0, 0, 0);
+           const end = new Date(now);
+           end.setHours(23,59,59,999);
+           baseQuery.startDate={$gte:start,$lte:end};
       }
     }
     if (statusFilter && statusFilter.toLowerCase() !== "all") {
       baseQuery.status = new RegExp(`^${statusFilter.trim()}$`, "i");
     }
-
-   
+    
     if (searchQuery) {
       const word = searchQuery.trim();
 

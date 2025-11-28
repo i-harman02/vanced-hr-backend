@@ -88,7 +88,7 @@ router.put("/update-employee", auth, async (req, res) => {
         const updatedUser = await Employee.findByIdAndUpdate(
           { _id: req.body.id },
           { $set: updatedFields },
-          { new: true, upsert: true }
+          { new: true }
         );
 
         if (!updatedUser) {
@@ -114,7 +114,7 @@ router.put("/update-employee", auth, async (req, res) => {
       await Employee.findByIdAndUpdate(
         { _id: userId },
         { $set: updatedFields },
-        { new: true, upsert: true }
+        { new: true }
       );
       res.status(200).json({ message: "Employee detail updated successfully" });
     } catch (error) {
@@ -180,45 +180,48 @@ router.put("/update-employee", auth, async (req, res) => {
       if (!id) {
         return res.status(400).send({ message: "Employee ID is required!" });
       }
-      // await Promise.all([
-      //   Leaves.deleteMany({ employee: id }), 
-      //   Performances.deleteMany({ employee: id }), 
-      //   Promotion.deleteMany({ promotedEmployee: id }), 
-      //   Resignation.deleteMany({ resignationEmployee: id }), 
-      //   Termination.deleteMany({ terminatedEmployee: id }),
-      //   Teams.updateMany(
-      //     {
-      //       $or: [
-      //         { "teamLeader.id": id }, 
-      //         { "teamMember.id": id }, 
-      //       ],
-      //     },
-      //     {
-      //       $pull: { 
-      //         "teamLeader.id": id, 
-      //         "teamMember.id": { $in: [id] }, 
-      //       },
-      //     }
-      //   ),
-      //   Announcement.deleteMany({employee : id}),
-      //   Comments.deleteMany({employee : id }),
+        await Promise.all([
+           Leaves.deleteMany({ employee: id }),
+          Performances.deleteMany({ employee: id }),
+          Promotion.deleteMany({ promotedEmployee: id }),
+          Resignation.deleteMany({ resignationEmployee: id }),
+          Termination.deleteMany({ terminatedEmployee: id }),
 
-      // ]);
-      // await Teams.deleteMany({
-      //   $or: [
-      //     { "teamLeader.id": { $exists: false } },  
-      //     // { "teamMember.id": { $size: 0 } },  // No members
-      //   ],
-      // });
-      // const deleted = await Employee.deleteOne({ _id: id });
+Teams.updateMany(
+    {
+      $or: [
+        { "teamLeader.id": id },
+        { "teamMember.id": id },
+      ],
+    },
+    {
+      $pull: {
+        teamLeader: { id },          
+        teamMember: { id }        
+      },
+    }
+  ),
+
+  Announcement.deleteMany({ employee: id }),
+  Comments.deleteMany({ employee: id }),
+]);
+
+await Teams.deleteMany({
+  $or: [
+    { teamLeader: { $size: 0 } },      
+    { teamMember: { $size: 0 } },
+  ],
+});
+
+await Employee.deleteOne({ _id: id });
+
       // await removeImage(id);
-
-      const updatedFields = { status: "Inactive" };
-      await Employee.findByIdAndUpdate(
-        { _id: id },
-        { $set: updatedFields },
-        { new: true, upsert: true }
-      );
+      // const updatedFields = { status: "Inactive" };
+      // await Employee.findByIdAndUpdate(
+      //   { _id: id },
+      //   { $set: updatedFields },
+      //   { new: true, upsert: true }
+      // );
 
       res
         .status(200)
