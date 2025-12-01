@@ -191,9 +191,10 @@ router.post("/apply-leave", auth, async (req, res) => {
   }
 });
 
+
 router.get("/on-leave", auth, async (req, res) => {
   try {
-    const today = new Date().toISOString().split("T")[0]; 
+    const today = new Date().toISOString().split("T")[0];
 
     const employeesOnLeaveToday = await Leaves.find({
       startDate: { $lte: today },
@@ -494,9 +495,9 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
     const searchQuery = req.query.search;
     const statusFilter = req.query.status;
     let query = { employee: userId };
-      if (statusFilter && statusFilter.toLowerCase() !== "all") {
-  query.status = new RegExp(`^${statusFilter.trim()}$`, "i");
-}
+    if (statusFilter && statusFilter.toLowerCase() !== "all") {
+      query.status = new RegExp(`^${statusFilter.trim()}$`, "i");
+    }
 
     if (!isNaN(daysFilter) && daysFilter > 0) {
       const cutoffDate = new Date();
@@ -516,7 +517,7 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
     //       (leave.reason && regex.test(leave.reason))
     //   );
     // }
-  
+
     if (searchQuery) {
       const search = searchQuery.toLowerCase().trim();
       const regex = new RegExp(searchQuery, "i");
@@ -553,6 +554,8 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
+
 
 router.get("/stats/:id", auth, async (req, res) => {
   try {
@@ -755,8 +758,6 @@ router.get("/history/:id", auth, async (req, res) => {
 router.get("/requested/:id", auth, async (req, res) => {
   try {
     const decoded = res.locals.decode;
-    const today = new Date();
-    today.setHours(0,0,0,0);
     const loggedInUser = await Employee.findById(decoded.id).lean();
     if (!loggedInUser) {
       return res.status(404).json({ message: "User not found" });
@@ -770,39 +771,38 @@ router.get("/requested/:id", auth, async (req, res) => {
     const searchQuery = req.query.search;
     const leaveTypeFilter = req.query.leaveType;
     const statusFilter = req.query.status;
-    
+
 
     let baseQuery = {};
     if (loggedInUser.role !== "admin") {
-    baseQuery.notify = userId;
-}
+      baseQuery.notify = userId;
+    }
     if (leaveTypeFilter && leaveTypeFilter.toUpperCase() !== "ALL") {
       baseQuery.leaveType = leaveTypeFilter;
     }
-  if (daysFilter && !isNaN(daysFilter)) {
-  if (daysFilter === 1) {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
+    if (daysFilter && !isNaN(daysFilter)) {
 
-    baseQuery.startDate = { $gte: start, $lte: end };
-  } else if (daysFilter > 1) {
-    // const cutoffDate = new Date();
-    // cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
-           const start = new Date(now);
-           start.setDate(start.getDate() - (daysFilter - 1)); 
-           start.setHours(0, 0, 0, 0);
-           const end = new Date(now);
-           end.setHours(23, 59, 59, 999);
-           baseQuery.startDate = { $gte: start, $lte: end };
-  }
-}
+      const end = new Date(today);
+      end.setHours(23, 59, 59, 999);
 
-if (statusFilter && statusFilter.toLowerCase() !== "all") {
-  baseQuery.status = new RegExp(`^${statusFilter.trim()}$`, "i");
-}
+      const start = new Date(today);
+      start.setDate(start.getDate() - (daysFilter - 1));
+      start.setHours(0, 0, 0, 0);
+
+      baseQuery.$and = [
+        { startDate: { $lte: end } },
+        { endDate: { $gte: start } }
+      ];
+    }
+
+
+
+    if (statusFilter && statusFilter.toLowerCase() !== "all") {
+      baseQuery.status = new RegExp(`^${statusFilter.trim()}$`, "i");
+    }
 
     if (searchQuery) {
       const word = searchQuery.trim();
@@ -851,72 +851,72 @@ if (statusFilter && statusFilter.toLowerCase() !== "all") {
     const totalCount = await Leaves.countDocuments(baseQuery);
     const totalPages = Math.ceil(totalCount / limit);
 
-    // const leaveData = await Leaves.find(baseQuery)
-    //   .sort({ createdAt:-1 })
-    //   .skip(skip)
-    //   .limit(limit)
-    //   .populate({
-    //     path: "employee",
-    //     select:
-    //       "userName designation employeeId firstName lastName profileImage",
-    //   })
-    //   .populate({
-    //     path: "approvedBy",
-    //     select:
-    //       "userName designation employeeId firstName lastName profileImage",
-    //   });
-const pipeline = [
-  { $match: baseQuery },
+    const leaveData = await Leaves.find(baseQuery)
+      .sort({ createdAt:-1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: "employee",
+        select:
+          "userName designation employeeId firstName lastName profileImage",
+      })
+      .populate({
+        path: "approvedBy",
+        select:
+          "userName designation employeeId firstName lastName profileImage",
+      });
+    // const pipeline = [
+    //   { $match: baseQuery },
 
-  {
-    $addFields: {
-      isOnLeaveToday: {
-        $cond: [
-          {
-            $and: [
-              { $lte: ["$startDate", today] },
-              { $gte: ["$endDate", today] }
-            ]
-          },
-          1,
-          0
-        ]
-      }
-    }
-  },
-  { $sort: { isOnLeaveToday: -1, createdAt: -1 } },
+    //   {
+    //     $addFields: {
+    //       isOnLeaveToday: {
+    //         $cond: [
+    //           {
+    //             $and: [
+    //               { $lte: ["$startDate", today] },
+    //               { $gte: ["$endDate", today] }
+    //             ]
+    //           },
+    //           1,
+    //           0
+    //         ]
+    //       }
+    //     }
+    //   },
+    //   { $sort: { isOnLeaveToday: -1, createdAt: -1 } },
 
-  { $skip: skip },
-  { $limit: limit },
+    //   { $skip: skip },
+    //   { $limit: limit },
 
-  {
-    $lookup: {
-      from: "employees",
-      localField: "employee",
-      foreignField: "_id",
-      as: "employee"
-    }
-  },
-  { $unwind: "$employee" },
+    //   {
+    //     $lookup: {
+    //       from: "employees",
+    //       localField: "employee",
+    //       foreignField: "_id",
+    //       as: "employee"
+    //     }
+    //   },
+    //   { $unwind: "$employee" },
 
-  {
-    $lookup: {
-      from: "employees",
-      localField: "approvedBy",
-      
-      foreignField: "_id",
-      as: "approvedBy"
-    }
-  },
-  { $unwind: { path: "$approvedBy", preserveNullAndEmptyArrays: true } },
-  {
-    $project: {
-      isOnLeaveToday: 0
-    }
-  }
-];
+    //   {
+    //     $lookup: {
+    //       from: "employees",
+    //       localField: "approvedBy",
 
-const leaveData = await Leaves.aggregate(pipeline);
+    //       foreignField: "_id",
+    //       as: "approvedBy"
+    //     }
+    //   },
+    //   { $unwind: { path: "$approvedBy", preserveNullAndEmptyArrays: true } },
+    //   {
+    //     $project: {
+    //       isOnLeaveToday: 0
+    //     }
+    //   }
+    // ];
+
+    // const leaveData = await Leaves.aggregate(pipeline);
 
     res.status(200).json({
       leaveData,
@@ -1044,47 +1044,46 @@ router.get("/all-requested-leaves", auth, async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-   
+
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    
+
     const daysFilter = parseInt(req.query.days);
     const searchQuery = req.query.search;
     const leaveTypeFilter = req.query.leaveType;
     const statusFilter = req.query.status;
 
-    let baseQuery = {}; 
- 
+    let baseQuery = {};
+
     if (leaveTypeFilter && leaveTypeFilter.toUpperCase() !== "ALL") {
       baseQuery.leaveType = leaveTypeFilter;
     }
 
-   
-    if (daysFilter && !isNaN(daysFilter)) {
-      if (daysFilter === 1) {
-        const start = new Date();
-        start.setHours(0, 0, 0, 0);
 
-        const end = new Date();
-        end.setHours(23, 59, 59, 999);
-        baseQuery.startDate = { $gte: start, $lte: end };
-      } else if (daysFilter > 1) {
-        // const cutoffDate = new Date();
-        // cutoffDate.setDate(cutoffDate.getDate() - daysFilter);
-           const start = new Date(now);
-           start.setDate(start.getDate() - (daysFilter - 1)); 
-           start.setHours(0, 0, 0, 0);
-           const end = new Date(now);
-           end.setHours(23,59,59,999);
-           baseQuery.startDate={$gte:start,$lte:end};
-      }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (daysFilter && !isNaN(daysFilter)) {
+      const end = new Date(today);
+      end.setHours(23, 59, 59, 999);
+
+      const start = new Date(today);
+      start.setDate(start.getDate() - (daysFilter - 1));
+      start.setHours(0, 0, 0, 0);
+
+      baseQuery.$and = [
+        { startDate: { $lte: end } },
+        { endDate: { $gte: start } }
+      ];
     }
+
+
     if (statusFilter && statusFilter.toLowerCase() !== "all") {
       baseQuery.status = new RegExp(`^${statusFilter.trim()}$`, "i");
     }
-    
+
     if (searchQuery) {
       const word = searchQuery.trim();
 
@@ -1131,59 +1130,71 @@ router.get("/all-requested-leaves", auth, async (req, res) => {
 
     const totalCount = await Leaves.countDocuments(baseQuery);
     const totalPages = Math.ceil(totalCount / limit);
+      const leaveData = await Leaves.find(baseQuery)
+      .sort({ createdAt:-1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: "employee",
+        select:
+          "userName designation employeeId firstName lastName profileImage",
+      })
+      .populate({
+        path: "approvedBy",
+        select:
+          "userName designation employeeId firstName lastName profileImage",
+      });
 
-    const today = new Date();
-    today.setHours(0,0,0,0); 
-    const pipeline = [
-  { $match: baseQuery },
-  {
-    $addFields: {
-      isOnLeaveToday: {
-        $cond: [
-          {
-            $and: [
-              { $lte: ["$startDate", today] },
-              { $gte: ["$endDate", today] }
-            ]
-          },
-          1,
-          0
-        ]
-      }
-    }
-  },
-  { $sort: { isOnLeaveToday: -1, createdAt: -1 } },
+    // const pipeline = [
+    //   { $match: baseQuery },
+    //   {
+    //     $addFields: {
+    //       isOnLeaveToday: {
+    //         $cond: [
+    //           {
+    //             $and: [
+    //               { $lte: ["$startDate", today] },
+    //               { $gte: ["$endDate", today] }
+    //             ]
+    //           },
+    //           1,
+    //           0
+    //         ]
+    //       }
+    //     }
+    //   },
+    //   { $sort: { isOnLeaveToday: -1, createdAt: -1 } },
 
-  { $skip: skip },
-  { $limit: limit },
+    //   { $skip: skip },
+    //   { $limit: limit },
 
-  {
-    $lookup: {
-      from: "employees",
-      localField: "employee",
-      foreignField: "_id",
-      as: "employee"
-    }
-  },
-  { $unwind: "$employee" },
+    //   {
+    //     $lookup: {
+    //       from: "employees",
+    //       localField: "employee",
+    //       foreignField: "_id",
+    //       as: "employee"
+    //     }
+    //   },
+    //   { $unwind: "$employee" },
 
-  {
-    $lookup: {
-      from: "employees",
-      localField: "approvedBy",
-      foreignField: "_id",
-      as: "approvedBy"
-    }
-  },
-  { $unwind: { path: "$approvedBy", preserveNullAndEmptyArrays: true } },
-  {
-    $project: {
-      isOnLeaveToday: 0
-    }
-  }
-];
+    //   {
+    //     $lookup: {
+    //       from: "employees",
+    //       localField: "approvedBy",
+    //       foreignField: "_id",
+    //       as: "approvedBy"
+    //     }
+    //   },
+    //   { $unwind: { path: "$approvedBy", preserveNullAndEmptyArrays: true } },
+    //   {
+    //     $project: {
+    //       isOnLeaveToday: 0
+    //     }
+    //   }
+    // ];
 
-const leaveData = await Leaves.aggregate(pipeline);
+    // const leaveData = await Leaves.aggregate(pipeline);
 
     res.status(200).json({
       leaveData,
@@ -1281,6 +1292,7 @@ router.put("/update-leave", auth, async (req, res) => {
     res.status(500).json({ message: "Something went wrong" });
   }
 });
+
 
 router.get("/today-stats", auth, async (req, res) => {
   try {

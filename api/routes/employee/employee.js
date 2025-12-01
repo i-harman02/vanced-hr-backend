@@ -127,6 +127,7 @@ router.put("/update-employee", auth, async (req, res) => {
     try {
       const usersImg = await Image.find({});
       const users = await Employee.find({}, { password: 0 });
+
       const employee = users.map(async (val, idx) => {
         const user_Id = val._id;
         const employeeImg = usersImg.find((elm) => elm.user_Id.equals(user_Id));
