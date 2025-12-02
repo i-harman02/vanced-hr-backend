@@ -11,6 +11,8 @@ const sendEmail = async ({to, cc = [], subject, templateName, replacements = {} 
     if (!templateName) {
       throw new Error("Template name is required but was not provided");
     }
+    if(!to||to.length===0)
+      throw new Error("Recepeint email (to) is required")
 
     const templatePath = path.join(process.cwd(), 'emailTemplates', templateName);
 
@@ -24,7 +26,7 @@ const sendEmail = async ({to, cc = [], subject, templateName, replacements = {} 
 
     Object.keys(replacements).forEach((key) => {
       const regex = new RegExp(`{{${key}}}`, 'g');
-      htmlContent = htmlContent.replace(regex, replacements[key]);
+      htmlContent = htmlContent.replace(regex, replacements[key]??"");
     });
 
     const transporter = nodemailer.createTransport({

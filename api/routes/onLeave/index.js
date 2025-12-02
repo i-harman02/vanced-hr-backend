@@ -113,7 +113,7 @@ router.post("/apply-leave", auth, async (req, res) => {
       leaveType,
       noOfDays,
       reason,
-      notify,
+      notify=[],
       approvedBy,
       status,
       startTime,
@@ -122,23 +122,23 @@ router.post("/apply-leave", auth, async (req, res) => {
     } = req.body;
     const startDateObj = new Date(startDate);
     const endDateObj = new Date(endDate);
-    // const overlappingLeaveRequest = await Leaves.findOne({
-    //   employee,
-    //   startDate: { $lte: endDate },
-    //   endDate: { $gte: startDate },
-    // }).sort({ createdAt: -1 });
-    // if (overlappingLeaveRequest) {
-    //   return res
-    //     .status(400)
-    //     .json({ message: "Leave request overlaps with existing leave" });
-    // }
+    const overlappingLeaveRequest = await Leaves.findOne({
+      employee,
+      startDate: { $lte: endDate },
+      endDate: { $gte: startDate },
+    }).sort({ createdAt: -1 });
+    if (overlappingLeaveRequest) {
+      return res
+        .status(400)
+        .json({ message: "Leave request overlaps with existing leave" });
+    }
     const employeeDetails = await Employee.findById(employee);
 
     if (!employeeDetails) {
       return res.status(400).json({ message: "Employee not found" });
     }
     const replacements = {
-      EmployeeName: `${employeeDetails.firstName} ${employeeDetails.lastName}`,
+      EmployeeName: `${employeeDetails.firstName} ${employeeDetails.lastName??" "}`,
       Designation: employeeDetails.role,
       LeaveType: leaveType,
       StartDate: startDateObj.toLocaleDateString(),
@@ -146,8 +146,20 @@ router.post("/apply-leave", auth, async (req, res) => {
       NumberOfDays: noOfDays,
       Reason: reason,
     };
+    const templateName = "leaveTemplate.html";
 
     let findManager = await Employee.findOne({ role: "manager" });
+
+    let notifyList = Array.isArray(notify) ? notify : [notify];
+    if (findManager) notifyList.push(findManager._id);
+    const notifyEmployees = await Employee.find({ _id: { $in: notifyList } });
+    const toEmails = notifyEmployees[0]?.email ? [notifyEmployees[0].email] : [];
+    const ccList = [
+      ...notifyEmployees.slice(1).map(e => e.email).filter(Boolean),
+      process.env.CC_MAIL1,
+      process.env.CC_MAIL2,
+    ].filter(Boolean);
+
     const newLeave = new Leaves({
       employee,
       startDate,
@@ -155,7 +167,7 @@ router.post("/apply-leave", auth, async (req, res) => {
       leaveType,
       noOfDays,
       reason,
-      notify: findManager ? [...notify, findManager._id] : notify,
+      notify: notifyList,
       approvedBy,
       status,
       startTime,
@@ -165,16 +177,7 @@ router.post("/apply-leave", auth, async (req, res) => {
 
     await newLeave.save();
 
-    const templateName = "leaveTemplate.html";
 
-    const notifyList = Array.isArray(notify) ? notify : [notify];
-    const toEmails = notifyList[0] ? [notifyList[0]] : [];
-
-    const ccList = [
-      ...(notifyList[1] ? [notifyList[1]] : []),
-      process.env.CC_MAIL1,
-      process.env.CC_MAIL2,
-    ];
 
     await sendMail({
       to: toEmails,
@@ -852,7 +855,7 @@ router.get("/requested/:id", auth, async (req, res) => {
     const totalPages = Math.ceil(totalCount / limit);
 
     const leaveData = await Leaves.find(baseQuery)
-      .sort({ createdAt:-1 })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate({
@@ -1130,8 +1133,8 @@ router.get("/all-requested-leaves", auth, async (req, res) => {
 
     const totalCount = await Leaves.countDocuments(baseQuery);
     const totalPages = Math.ceil(totalCount / limit);
-      const leaveData = await Leaves.find(baseQuery)
-      .sort({ createdAt:-1 })
+    const leaveData = await Leaves.find(baseQuery)
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate({
@@ -1268,18 +1271,18 @@ router.put("/update-leave", auth, async (req, res) => {
   try {
     const updatedFields = { ...req.body, status: "Pending", approvedBy: null };
 
-    // const overlappingLeaveRequest = await Leaves.findOne({
-    //   employee: req.body.employee,
-    //   _id: { $ne: req.body.id },
-    //   startDate: { $lte: req.body.endDate },
-    //   endDate: { $gte: req.body.startDate },
-    // });
+    const overlappingLeaveRequest = await Leaves.findOne({
+      employee: req.body.employee,
+      _id: { $ne: req.body.id },
+      startDate: { $lte: req.body.endDate },
+      endDate: { $gte: req.body.startDate },
+    });
 
-    // if (overlappingLeaveRequest) {
-    //   return res
-    //     .status(400)
-    //     .json({ message: "Leave request overlaps with existing leave" });
-    // }
+    if (overlappingLeaveRequest) {
+      return res
+        .status(400)
+        .json({ message: "Leave request overlaps with existing leave" });
+    }
 
     await Leaves.findByIdAndUpdate(
       req.body.id, // Pass the ID directly here
