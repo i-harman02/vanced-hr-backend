@@ -11,8 +11,9 @@ const sendEmail = async ({to, cc = [], subject, templateName, replacements = {} 
     if (!templateName) {
       throw new Error("Template name is required but was not provided");
     }
-    if(!to||to.length===0)
-      throw new Error("Recepeint email (to) is required")
+    if(!to||to.length===0){
+      console.warn("sendEmail skipped: No recipient email");
+  return;}
 
     const templatePath = path.join(process.cwd(), 'emailTemplates', templateName);
 
@@ -44,10 +45,9 @@ const sendEmail = async ({to, cc = [], subject, templateName, replacements = {} 
       subject,
       html: htmlContent
     };
-
-    // Send the email
     await transporter.sendMail(mailOptions);
     console.log('Email sent successfully to:', to);
+    console.log('Email sent successfully to:', cc);
   } catch (error) {
     console.error('Error sending email:', error);
     throw error;

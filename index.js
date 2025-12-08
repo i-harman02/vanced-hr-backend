@@ -58,6 +58,28 @@ app.use("/uploads", express.static("./uploads"));
 
 // Run the one-time update function
 // updateSpecificLeaveRecord();
+// async function removeDuplicates() {
+//   try {
+//     const duplicates = await Leaves.aggregate([
+//       {
+//         $group: {
+//           _id: { employee: "$employee", startDate: "$startDate", endDate: "$endDate", leaveType: "$leaveType" },
+//           ids: { $addToSet: "$_id" },
+//           count: { $sum: 1 }
+//         }
+//       },
+//       { $match: { count: { $gt: 1 } } }
+//     ]);
+
+//     for (const dup of duplicates) {
+//       const [keep, ...remove] = dup.ids;
+//       await Leaves.deleteMany({ _id: { $in: remove } });
+//     }
+
+//     console.log("Duplicate leaves removed!");}catch(e){
+//  console.error(error);
+//     }}
+//     removeDuplicates();
 
 app.listen(PORT, () => {
   console.log("Server is running..." + PORT);

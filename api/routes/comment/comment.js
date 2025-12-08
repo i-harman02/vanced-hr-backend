@@ -49,7 +49,7 @@ router.delete("/delete-comment",auth, async (req, res) => {
   }
 });
 
-router.put("/update=comment",auth, async (req, res) => {
+router.put("/update-comment",auth, async (req, res) => {
   try {
     const commentId = req.body.id;
     const updatedFields = req.body;

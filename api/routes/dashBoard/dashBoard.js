@@ -13,7 +13,8 @@ router.get("/all-count",auth, async (req, res) => {
     const project = await Projects.find({});
     const totalProjects = project.length;
     const totalClients = client.length;
-    const totalEmployees = employee.length;
+    const activeEmployees=employee.filter(e=>e.status==="Active")
+    const totalEmployees =activeEmployees.length;
     const activeTask = 54;
     const data = { totalEmployees, activeTask, totalClients, totalProjects };
     res.status(200).json(data);
@@ -46,7 +47,7 @@ router.get("/new-employee",auth, async (req, res) => {
     });
     const employees = await Promise.all(user);
     res.status(200).json(employees);
-  } catch (error) {
+  } catch (error) { 
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });
   }

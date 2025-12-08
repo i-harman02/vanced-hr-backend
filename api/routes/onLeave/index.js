@@ -8,6 +8,8 @@ const auth = require("../../helpers/auth");
 const calculateShortLeave = require("../../helpers/calculateShortLeaves");
 const sendMail = require("../../../helpers/nodemailer");
 const path = require("path");
+const dayjs = require('dayjs')
+
 //const nodemailer = require("nodemailer");
 
 // router.post("/apply-leave", auth, async (req, res) => {
@@ -103,6 +105,33 @@ const path = require("path");
 //     res.status(500).json({ message: "Something went wrong" });
 //   }
 // });
+function formatLeaveType(type) {
+  const map = {
+    SHORT_LEAVE: "SHORT LEAVE",
+    FULL_DAY_LEAVE: "FULL DAY LEAVE",
+    HALF_DAY_LEAVE: "HALF DAY LEAVE",
+  };
+  return map[type] || type;
+}
+
+// function formatDuration(leaveType, startTime, endTime, noOfDays) {
+//   if (leaveType === "SHORT_LEAVE") {
+//     const start = new Date(startTime);
+//     const end = new Date(endTime);
+
+//     // return `${start} to ${end}`
+//   }
+
+//   if (leaveType === "HALF_DAY_LEAVE") {
+//     return "0.5 day";
+//   }
+
+//   if (leaveType === "FULL_DAY_LEAVE") {
+//     return `${noOfDays} day(s)`;
+//   }
+
+//   return `${noOfDays}`;
+// }
 
 router.post("/apply-leave", auth, async (req, res) => {
   try {
@@ -122,11 +151,14 @@ router.post("/apply-leave", auth, async (req, res) => {
     } = req.body;
     const startDateObj = new Date(startDate);
     const endDateObj = new Date(endDate);
+     
     const overlappingLeaveRequest = await Leaves.findOne({
       employee,
+       status: { $in: ["Approved", "Pending"] },
       startDate: { $lte: endDate },
       endDate: { $gte: startDate },
     }).sort({ createdAt: -1 });
+   
     if (overlappingLeaveRequest) {
       return res
         .status(400)
@@ -137,14 +169,32 @@ router.post("/apply-leave", auth, async (req, res) => {
     if (!employeeDetails) {
       return res.status(400).json({ message: "Employee not found" });
     }
+    const readableLeaveType = formatLeaveType(leaveType);
+    // const durationText = formatDuration(leaveType, startTime, endTime, noOfDays);
+    let durationText = "";
+    
+    
+    if (leaveType === "SHORT_LEAVE") {
+      
+      const formattedStartTime = dayjs(startTime).format("HH:mm");
+      const formattedEndTime = dayjs(endTime).format("HH:mm");
+      durationText = `${formattedStartTime} - ${formattedEndTime}`;
+    } else if (leaveType === "FULL_DAY_LEAVE" || leaveType === "HALF_DAY_LEAVE") {
+     
+      durationText = `${noOfDays} day${noOfDays > 1 ? "s" : ""}`;
+    }
     const replacements = {
       EmployeeName: `${employeeDetails.firstName} ${employeeDetails.lastName??" "}`,
       Designation: employeeDetails.role,
-      LeaveType: leaveType,
+      LeaveType: readableLeaveType,
+      Duration:durationText,
       StartDate: startDateObj.toLocaleDateString(),
       EndDate: endDateObj.toLocaleDateString(),
       NumberOfDays: noOfDays,
       Reason: reason,
+      StartTime:startTime,
+      EndTime:endTime
+    
     };
     const templateName = "leaveTemplate.html";
 
@@ -153,11 +203,13 @@ router.post("/apply-leave", auth, async (req, res) => {
     let notifyList = Array.isArray(notify) ? notify : [notify];
     if (findManager) notifyList.push(findManager._id);
     const notifyEmployees = await Employee.find({ _id: { $in: notifyList } });
-    const toEmails = notifyEmployees[0]?.email ? [notifyEmployees[0].email] : [];
+    const teamLeader= notifyEmployees[0]?.email ? [notifyEmployees[0].email] : [];
+    const toEmails =process.env.HR_MAIL
     const ccList = [
       ...notifyEmployees.slice(1).map(e => e.email).filter(Boolean),
       process.env.CC_MAIL1,
       process.env.CC_MAIL2,
+      teamLeader
     ].filter(Boolean);
 
     const newLeave = new Leaves({
@@ -172,27 +224,157 @@ router.post("/apply-leave", auth, async (req, res) => {
       status,
       startTime,
       endTime,
-      durations,
+      durations:durationText,
     });
 
-    await newLeave.save();
+   await newLeave.save();
 
 
 
-    await sendMail({
-      to: toEmails,
-      cc: ccList,
-      subject: "Leave Information",
-      templateName,
-      replacements,
-    });
+//     if (toEmails.length > 0) {
+//     await sendMail({
+//         to: toEmails,
+//         cc: ccList,
+//         subject: "Leave Information",
+//         templateName,
+//         replacements,
+//     });
+// } else {
+//     console.warn("No valid recipient email found. Skipping email.");
+// }
+
 
     res.status(201).json({ message: "Leave applied successfully" });
+    setImmediate(async () => {
+      try {
+        if (toEmails.length > 0) {
+          await sendMail({
+            to: toEmails,
+            cc: ccList,
+            subject: "Leave Information",
+            templateName: "leaveTemplate.html",
+            replacements,
+          });
+        }
+      } catch (error) {
+        console.error("Error sending email:", error);
+      }
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });
   }
 });
+// router.post("/apply-leave", auth, async (req, res) => {
+//   try {
+//     const {
+//       employee,
+//       startDate,
+//       endDate,
+//       leaveType,
+//       noOfDays,
+//       reason,
+//       notify = [],
+//       approvedBy,
+//       status,
+//       startTime,
+//       endTime,
+//     } = req.body;
+
+//     const startDateObj = new Date(startDate);
+//     const endDateObj = new Date(endDate);
+
+//     const overlappingLeaveRequest = await Leaves.findOne({
+//       employee,
+//       status: { $in: ["Approved", "Pending"] },
+//       startDate: { $lte: endDate },
+//       endDate: { $gte: startDate },
+//     }).sort({ createdAt: -1 });
+
+//     if (overlappingLeaveRequest) {
+//       return res.status(400).json({ message: "Leave request overlaps with existing leave" });
+//     }
+
+//     const [employeeDetails, manager] = await Promise.all([
+//       Employee.findById(employee).select('firstName lastName role email'),
+//       Employee.findOne({ role: "manager" }).select('firstName lastName role email'),
+//     ]);
+
+//     if (!employeeDetails) {
+//       return res.status(400).json({ message: "Employee not found" });
+//     }
+
+//     const readableLeaveType = formatLeaveType(leaveType);
+//     const durationText = formatDuration(leaveType, startTime, endTime, noOfDays);
+
+//     const replacements = {
+//       EmployeeName: `${employeeDetails.firstName} ${employeeDetails.lastName || ""}`,
+//       Designation: employeeDetails.role,
+//       LeaveType: readableLeaveType,
+//       Duration: durationText,
+//       StartDate: startDateObj.toLocaleDateString(),
+//       EndDate: endDateObj.toLocaleDateString(),
+//       NumberOfDays: noOfDays,
+//       Reason: reason,
+//     };
+
+//     const notifyList = [...new Set([...notify, manager?._id].filter(Boolean))];
+
+//     const notifyEmployees = await Employee.find({ _id: { $in: notifyList } });
+
+//     const toEmails = notifyEmployees[0]?.email ? [notifyEmployees[0].email] : [];
+//     const ccList = [
+//       ...notifyEmployees.slice(1).map(e => e.email).filter(Boolean),
+//       process.env.CC_MAIL1,
+//       process.env.CC_MAIL2,
+//       process.env.HR_MAIL,
+//     ].filter(Boolean);
+
+    
+//     const newLeave = new Leaves({
+//       employee,
+//       startDate,
+//       endDate,
+//       leaveType,
+//       noOfDays,
+//       reason,
+//       notify: notifyList,
+//       approvedBy,
+//       status,
+//       startTime,
+//       endTime,
+//       durations: durationText,
+//     });
+
+
+//     const leaveSave =newLeave.save();
+
+//     res.status(201).json({ message: "Leave applied successfully" });
+
+   
+//     setImmediate(async () => {
+//       try {
+//         if (toEmails.length > 0) {
+//           await sendMail({
+//             to: toEmails,
+//             cc: ccList,
+//             subject: "Leave Information",
+//             templateName: "leaveTemplate.html",
+//             replacements,
+//           });
+//         }
+//       } catch (error) {
+//         console.error("Error sending email:", error);
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("Error in applying leave:", error);
+//     res.status(500).json({ message: "Something went wrong" });
+//   }
+// });
+
+
 
 
 router.get("/on-leave", auth, async (req, res) => {
@@ -821,7 +1003,7 @@ router.get("/requested/:id", auth, async (req, res) => {
       }
 
       if (matchingEmployees.length === 0) {
-        const nameParts = word.split(/\s+/);
+        const nameParts = word.split(/\s+/);  
         if (nameParts.length > 1) {
           const firstPart = nameParts[0];
           const lastPart = nameParts[nameParts.length - 1];

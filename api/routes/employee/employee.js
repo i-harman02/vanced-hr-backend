@@ -22,7 +22,7 @@ const DeleteUploadedImage = require("../../helpers/deleteImage/deleteUploadedIma
 const router = express.Router();
 const saltRounds = 10;
 
-router.post("/add-employee", auth, async (req, res) => {
+router.post("/add-employee",auth, async (req, res) => {
     try {
       const { email, password, firstName, lastName, role } = req.body;
 

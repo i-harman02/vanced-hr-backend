@@ -171,6 +171,11 @@ const employeeSchema = new mongoose.Schema({
     },
   ],
 });
+employeeSchema.index({ email: 1 }); 
+employeeSchema.index({ employeeId: 1 });
+employeeSchema.index({ role: 1 }); 
+employeeSchema.index({ status: 1 });
+employeeSchema.index({ firstName: 1, lastName: 1 }); 
 
 const Employee = mongoose.model("Employee", employeeSchema);
 
