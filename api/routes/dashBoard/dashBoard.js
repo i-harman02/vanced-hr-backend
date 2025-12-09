@@ -23,6 +23,7 @@ router.get("/all-count",auth, async (req, res) => {
   }
 });
 
+
 router.get("/new-employee",auth, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;

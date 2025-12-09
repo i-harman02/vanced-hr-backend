@@ -55,3 +55,4 @@ const sendEmail = async ({to, cc = [], subject, templateName, replacements = {} 
 };
 
 module.exports = sendEmail;
+

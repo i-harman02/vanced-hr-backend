@@ -104,33 +104,6 @@ const dayjs = require('dayjs');
 //     res.status(500).json({ message: "Something went wrong" });
 //   }
 // });
-function formatLeaveType(type) {
-  const map = {
-    SHORT_LEAVE: "SHORT LEAVE",
-    FULL_DAY_LEAVE: "FULL DAY LEAVE",
-    HALF_DAY_LEAVE: "HALF DAY LEAVE",
-  };
-  return map[type] || type;
-}
-
-// function formatDuration(leaveType, startTime, endTime, noOfDays) {
-//   if (leaveType === "SHORT_LEAVE") {
-//     const start = new Date(startTime);
-//     const end = new Date(endTime);
-
-//     // return `${start} to ${end}`
-//   }
-
-//   if (leaveType === "HALF_DAY_LEAVE") {
-//     return "0.5 day";
-//   }
-
-//   if (leaveType === "FULL_DAY_LEAVE") {
-//     return `${noOfDays} day(s)`;
-//   }
-
-//   return `${noOfDays}`;
-// }
 
 router.post("/apply-leave", auth, async (req, res) => {
   try {
@@ -225,155 +198,34 @@ router.post("/apply-leave", auth, async (req, res) => {
       endTime,
       durations:durationText,
     });
-   await newLeave.save();
 
+    await newLeave.save();
 
+    const templateName = "leaveTemplate.html";
 
-//     if (toEmails.length > 0) {
-//     await sendMail({
-//         to: toEmails,
-//         cc: ccList,
-//         subject: "Leave Information",
-//         templateName,
-//         replacements,
-//     });
-// } else {
-//     console.warn("No valid recipient email found. Skipping email.");
-// }
+    const notifyList = Array.isArray(notify) ? notify : [notify];
+    const toEmails = notifyList[0] ? [notifyList[0]] : [];
 
+    const ccList = [
+      ...(notifyList[1] ? [notifyList[1]] : []),
+      process.env.CC_MAIL1,
+      process.env.CC_MAIL2,
+    ];
+
+    await sendMail({
+      to: toEmails,
+      cc: ccList,
+      subject: "Leave Information",
+      templateName,
+      replacements,
+    });
 
     res.status(201).json({ message: "Leave applied successfully" });
-    setImmediate(async () => {
-      try {
-        if (toEmails.length > 0) {
-          await sendMail({
-            to: toEmails,
-            cc: ccList,
-            subject: "Leave Information",
-            templateName: "leaveTemplate.html",
-            replacements,
-          });
-        }
-      } catch (error) {
-        console.error("Error sending email:", error);
-      }
-    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });
   }
 });
-// router.post("/apply-leave", auth, async (req, res) => {
-//   try {
-//     const {
-//       employee,
-//       startDate,
-//       endDate,
-//       leaveType,
-//       noOfDays,
-//       reason,
-//       notify = [],
-//       approvedBy,
-//       status,
-//       startTime,
-//       endTime,
-//     } = req.body;
-
-//     const startDateObj = new Date(startDate);
-//     const endDateObj = new Date(endDate);
-
-//     const overlappingLeaveRequest = await Leaves.findOne({
-//       employee,
-//       status: { $in: ["Approved", "Pending"] },
-//       startDate: { $lte: endDate },
-//       endDate: { $gte: startDate },
-//     }).sort({ createdAt: -1 });
-
-//     if (overlappingLeaveRequest) {
-//       return res.status(400).json({ message: "Leave request overlaps with existing leave" });
-//     }
-
-//     const [employeeDetails, manager] = await Promise.all([
-//       Employee.findById(employee).select('firstName lastName role email'),
-//       Employee.findOne({ role: "manager" }).select('firstName lastName role email'),
-//     ]);
-
-//     if (!employeeDetails) {
-//       return res.status(400).json({ message: "Employee not found" });
-//     }
-
-//     const readableLeaveType = formatLeaveType(leaveType);
-//     const durationText = formatDuration(leaveType, startTime, endTime, noOfDays);
-
-//     const replacements = {
-//       EmployeeName: `${employeeDetails.firstName} ${employeeDetails.lastName || ""}`,
-//       Designation: employeeDetails.role,
-//       LeaveType: readableLeaveType,
-//       Duration: durationText,
-//       StartDate: startDateObj.toLocaleDateString(),
-//       EndDate: endDateObj.toLocaleDateString(),
-//       NumberOfDays: noOfDays,
-//       Reason: reason,
-//     };
-
-//     const notifyList = [...new Set([...notify, manager?._id].filter(Boolean))];
-
-//     const notifyEmployees = await Employee.find({ _id: { $in: notifyList } });
-
-//     const toEmails = notifyEmployees[0]?.email ? [notifyEmployees[0].email] : [];
-//     const ccList = [
-//       ...notifyEmployees.slice(1).map(e => e.email).filter(Boolean),
-//       process.env.CC_MAIL1,
-//       process.env.CC_MAIL2,
-//       process.env.HR_MAIL,
-//     ].filter(Boolean);
-
-    
-//     const newLeave = new Leaves({
-//       employee,
-//       startDate,
-//       endDate,
-//       leaveType,
-//       noOfDays,
-//       reason,
-//       notify: notifyList,
-//       approvedBy,
-//       status,
-//       startTime,
-//       endTime,
-//       durations: durationText,
-//     });
-
-
-//     const leaveSave =newLeave.save();
-
-//     res.status(201).json({ message: "Leave applied successfully" });
-
-   
-//     setImmediate(async () => {
-//       try {
-//         if (toEmails.length > 0) {
-//           await sendMail({
-//             to: toEmails,
-//             cc: ccList,
-//             subject: "Leave Information",
-//             templateName: "leaveTemplate.html",
-//             replacements,
-//           });
-//         }
-//       } catch (error) {
-//         console.error("Error sending email:", error);
-//       }
-//     });
-
-//   } catch (error) {
-//     console.error("Error in applying leave:", error);
-//     res.status(500).json({ message: "Something went wrong" });
-//   }
-// });
-
-
-
 
 router.get("/on-leave", auth, async (req, res) => {
   try {
@@ -1034,22 +886,22 @@ router.get("/requested/:id", auth, async (req, res) => {
     const totalCount = await Leaves.countDocuments(baseQuery);
     const totalPages = Math.ceil(totalCount / limit);
 
-    const leaveData = await Leaves.find(baseQuery)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate({
-        path: "employee",
-        select:
-          "userName designation employeeId firstName lastName profileImage",
-      })
-      .populate({
-        path: "approvedBy",
-        select:
-          "userName designation employeeId firstName lastName profileImage",
-      });
-    // const pipeline = [
-    //   { $match: baseQuery },
+    // const leaveData = await Leaves.find(baseQuery)
+    //   .sort({ createdAt:-1 })
+    //   .skip(skip)
+    //   .limit(limit)
+    //   .populate({
+    //     path: "employee",
+    //     select:
+    //       "userName designation employeeId firstName lastName profileImage",
+    //   })
+    //   .populate({
+    //     path: "approvedBy",
+    //     select:
+    //       "userName designation employeeId firstName lastName profileImage",
+    //   });
+const pipeline = [
+  { $match: baseQuery },
 
     //   {
     //     $addFields: {
@@ -1082,22 +934,22 @@ router.get("/requested/:id", auth, async (req, res) => {
     //   },
     //   { $unwind: "$employee" },
 
-    //   {
-    //     $lookup: {
-    //       from: "employees",
-    //       localField: "approvedBy",
-
-    //       foreignField: "_id",
-    //       as: "approvedBy"
-    //     }
-    //   },
-    //   { $unwind: { path: "$approvedBy", preserveNullAndEmptyArrays: true } },
-    //   {
-    //     $project: {
-    //       isOnLeaveToday: 0
-    //     }
-    //   }
-    // ];
+  {
+    $lookup: {
+      from: "employees",
+      localField: "approvedBy",
+      
+      foreignField: "_id",
+      as: "approvedBy"
+    }
+  },
+  { $unwind: { path: "$approvedBy", preserveNullAndEmptyArrays: true } },
+  {
+    $project: {
+      isOnLeaveToday: 0
+    }
+  }
+];
 
     // const leaveData = await Leaves.aggregate(pipeline);
 
@@ -1118,10 +970,11 @@ router.get("/requested/:id", auth, async (req, res) => {
   }
 });
 
+
+
 // router.get("/requested/:id", auth, async (req, res) => {
 //   try {
 //     const userId = req.params.id;
-//     const page = parseInt(req.query.page) || 1;
 //     const limit = parseInt(req.query.limit) || 10;
 //     const skip = (page - 1) * limit;
 
@@ -1313,40 +1166,28 @@ router.get("/all-requested-leaves", auth, async (req, res) => {
 
     const totalCount = await Leaves.countDocuments(baseQuery);
     const totalPages = Math.ceil(totalCount / limit);
-    const leaveData = await Leaves.find(baseQuery)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate({
-        path: "employee",
-        select:
-          "userName designation employeeId firstName lastName profileImage",
-      })
-      .populate({
-        path: "approvedBy",
-        select:
-          "userName designation employeeId firstName lastName profileImage",
-      });
 
-    // const pipeline = [
-    //   { $match: baseQuery },
-    //   {
-    //     $addFields: {
-    //       isOnLeaveToday: {
-    //         $cond: [
-    //           {
-    //             $and: [
-    //               { $lte: ["$startDate", today] },
-    //               { $gte: ["$endDate", today] }
-    //             ]
-    //           },
-    //           1,
-    //           0
-    //         ]
-    //       }
-    //     }
-    //   },
-    //   { $sort: { isOnLeaveToday: -1, createdAt: -1 } },
+    const today = new Date();
+    today.setHours(0,0,0,0); 
+    const pipeline = [
+  { $match: baseQuery },
+  {
+    $addFields: {
+      isOnLeaveToday: {
+        $cond: [
+          {
+            $and: [
+              { $lte: ["$startDate", today] },
+              { $gte: ["$endDate", today] }
+            ]
+          },
+          1,
+          0
+        ]
+      }
+    }
+  },
+  { $sort: { isOnLeaveToday: -1, createdAt: -1 } },
 
     //   { $skip: skip },
     //   { $limit: limit },
@@ -1361,21 +1202,21 @@ router.get("/all-requested-leaves", auth, async (req, res) => {
     //   },
     //   { $unwind: "$employee" },
 
-    //   {
-    //     $lookup: {
-    //       from: "employees",
-    //       localField: "approvedBy",
-    //       foreignField: "_id",
-    //       as: "approvedBy"
-    //     }
-    //   },
-    //   { $unwind: { path: "$approvedBy", preserveNullAndEmptyArrays: true } },
-    //   {
-    //     $project: {
-    //       isOnLeaveToday: 0
-    //     }
-    //   }
-    // ];
+  {
+    $lookup: {
+      from: "employees",
+      localField: "approvedBy",
+      foreignField: "_id",
+      as: "approvedBy"
+    }
+  },
+  { $unwind: { path: "$approvedBy", preserveNullAndEmptyArrays: true } },
+  {
+    $project: {
+      isOnLeaveToday: 0
+    }
+  }
+];
 
     // const leaveData = await Leaves.aggregate(pipeline);
 
