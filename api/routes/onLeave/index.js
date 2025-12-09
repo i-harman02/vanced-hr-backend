@@ -225,7 +225,6 @@ router.post("/apply-leave", auth, async (req, res) => {
       endTime,
       durations:durationText,
     });
-
    await newLeave.save();
 
 
