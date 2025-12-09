@@ -201,16 +201,16 @@ router.post("/apply-leave", auth, async (req, res) => {
 
     await newLeave.save();
 
-    const templateName = "leaveTemplate.html";
+    // const templateName = "leaveTemplate.html";
 
-    const notifyList = Array.isArray(notify) ? notify : [notify];
-    const toEmails = notifyList[0] ? [notifyList[0]] : [];
+    // const notifyList = Array.isArray(notify) ? notify : [notify];
+    // const toEmails = notifyList[0] ? [notifyList[0]] : [];
 
-    const ccList = [
-      ...(notifyList[1] ? [notifyList[1]] : []),
-      process.env.CC_MAIL1,
-      process.env.CC_MAIL2,
-    ];
+    // const ccList = [
+    //   ...(notifyList[1] ? [notifyList[1]] : []),
+    //   process.env.CC_MAIL1,
+    //   process.env.CC_MAIL2,
+    // ];
 
     await sendMail({
       to: toEmails,
@@ -1098,7 +1098,7 @@ router.get("/all-requested-leaves", auth, async (req, res) => {
     }
 
 
-    const today = new Date();
+    // const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     if (daysFilter && !isNaN(daysFilter)) {
