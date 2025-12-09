@@ -8,8 +8,7 @@ const auth = require("../../helpers/auth");
 const calculateShortLeave = require("../../helpers/calculateShortLeaves");
 const sendMail = require("../../../helpers/nodemailer");
 const path = require("path");
-const dayjs = require('dayjs')
-
+const dayjs = require('dayjs');
 //const nodemailer = require("nodemailer");
 
 // router.post("/apply-leave", auth, async (req, res) => {
