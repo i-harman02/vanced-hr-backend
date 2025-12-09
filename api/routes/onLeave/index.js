@@ -104,6 +104,14 @@ const dayjs = require('dayjs');
 //     res.status(500).json({ message: "Something went wrong" });
 //   }
 // });
+function formatLeaveType(type) {
+  const map = {
+    SHORT_LEAVE: "SHORT LEAVE",
+    FULL_DAY_LEAVE: "FULL DAY LEAVE",
+    HALF_DAY_LEAVE: "HALF DAY LEAVE",
+  };
+  return map[type] || type;
+}
 
 router.post("/apply-leave", auth, async (req, res) => {
   try {
