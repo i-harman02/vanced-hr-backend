@@ -886,22 +886,22 @@ router.get("/requested/:id", auth, async (req, res) => {
     const totalCount = await Leaves.countDocuments(baseQuery);
     const totalPages = Math.ceil(totalCount / limit);
 
-    // const leaveData = await Leaves.find(baseQuery)
-    //   .sort({ createdAt:-1 })
-    //   .skip(skip)
-    //   .limit(limit)
-    //   .populate({
-    //     path: "employee",
-    //     select:
-    //       "userName designation employeeId firstName lastName profileImage",
-    //   })
-    //   .populate({
-    //     path: "approvedBy",
-    //     select:
-    //       "userName designation employeeId firstName lastName profileImage",
-    //   });
-const pipeline = [
-  { $match: baseQuery },
+    const leaveData = await Leaves.find(baseQuery)
+      .sort({ createdAt:-1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: "employee",
+        select:
+          "userName designation employeeId firstName lastName profileImage",
+      })
+      .populate({
+        path: "approvedBy",
+        select:
+          "userName designation employeeId firstName lastName profileImage",
+      });
+// const pipeline = [
+//   { $match: baseQuery },
 
     //   {
     //     $addFields: {
@@ -934,22 +934,22 @@ const pipeline = [
     //   },
     //   { $unwind: "$employee" },
 
-  {
-    $lookup: {
-      from: "employees",
-      localField: "approvedBy",
+//   {
+//     $lookup: {
+//       from: "employees",
+//       localField: "approvedBy",
       
-      foreignField: "_id",
-      as: "approvedBy"
-    }
-  },
-  { $unwind: { path: "$approvedBy", preserveNullAndEmptyArrays: true } },
-  {
-    $project: {
-      isOnLeaveToday: 0
-    }
-  }
-];
+//       foreignField: "_id",
+//       as: "approvedBy"
+//     }
+//   },
+//   { $unwind: { path: "$approvedBy", preserveNullAndEmptyArrays: true } },
+//   {
+//     $project: {
+//       isOnLeaveToday: 0
+//     }
+//   }
+// ];
 
     // const leaveData = await Leaves.aggregate(pipeline);
 
