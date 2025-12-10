@@ -619,6 +619,7 @@ router.get("/all-requested-leaves", auth, async (req, res) => {
     if (leaveTypeFilter && leaveTypeFilter.toUpperCase() !== "ALL") {
       baseQuery.leaveType = leaveTypeFilter;
     }
+     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     if (daysFilter && !isNaN(daysFilter)) {
