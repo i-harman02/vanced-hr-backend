@@ -518,56 +518,61 @@ router.get("/requested/:id", auth, async (req, res) => {
         { endDate: { $gte: start } }
       ];
     }
-
-
-
     if (statusFilter && statusFilter.toLowerCase() !== "all") {
       baseQuery.status = new RegExp(`^${statusFilter.trim()}$`, "i");
     }
-
     if (searchQuery) {
-      const word = searchQuery.trim();
+  const word = searchQuery.trim();
+  const isDateSearch = !isNaN(Date.parse(word));
+  if (isDateSearch) {
+    const start = new Date(word);
+    start.setHours(0, 0, 0, 0);
 
-      let matchingEmployees = await Employee.find({
-        firstName: { $regex: word, $options: "i" },
-      }).select("_id");
+    const end = new Date(word);
+    end.setHours(23, 59, 59, 999);
 
-      if (matchingEmployees.length === 0) {
-        matchingEmployees = await Employee.find({
-          lastName: { $regex: word, $options: "i" },
-        }).select("_id");
-      }
-
-      if (matchingEmployees.length === 0) {
-        const nameParts = word.split(/\s+/);  
-        if (nameParts.length > 1) {
-          const firstPart = nameParts[0];
-          const lastPart = nameParts[nameParts.length - 1];
-          matchingEmployees = await Employee.find({
-            firstName: { $regex: firstPart, $options: "i" },
-            lastName: { $regex: lastPart, $options: "i" },
-          }).select("_id");
-        }
-      }
-
-      const employeeIds = matchingEmployees.map((emp) => emp._id);
-
-      if (employeeIds.length === 0) {
-        return res.status(200).json({
-          leaveData: [],
-          pagination: {
-            totalItems: 0,
-            totalPages: 0,
-            currentPage: page,
-            itemsPerPage: limit,
-            hasNextPage: false,
-            hasPrevPage: false,
+    baseQuery.startDate = {
+      $gte: start,
+      $lte: end,
+    };
+  }
+  else {
+    const matchingEmployees = await Employee.find({
+      $or: [
+        { firstName: { $regex: word, $options: "i" } },
+        { lastName: { $regex: word, $options: "i" } },
+        {
+          $expr: {
+            $regexMatch: {
+              input: { $concat: ["$firstName", " ", "$lastName"] },
+              regex: word,
+              options: "i",
+            },
           },
-        });
-      }
+        },
+      ],
+    }).select("_id");
 
-      baseQuery.employee = { $in: employeeIds };
+    if (matchingEmployees.length === 0) {
+      return res.status(200).json({
+        leaveData: [],
+        pagination: {
+          totalItems: 0,
+          totalPages: 0,
+          currentPage: page,
+          itemsPerPage: limit,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      });
     }
+
+    baseQuery.employee = {
+      $in: matchingEmployees.map((emp) => emp._id),
+    };
+  }
+}
+
 
     const totalCount = await Leaves.countDocuments(baseQuery);
     const totalPages = Math.ceil(totalCount / limit);
