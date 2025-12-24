@@ -26,29 +26,22 @@ router.post("/add-employee",auth, async (req, res) => {
     try {
       const { email, password, firstName, lastName, role } = req.body;
 
-      // Validate required fields
       if (!email || !password || !firstName ) {
         return res.status(400).json({ message: "Required fields are missing" });
       }
 
-      // Check if email already exists
       const existingEmail = await Employee.findOne({ email });
       if (existingEmail) {
         return res.status(409).json({ message: "Email already exists" });
       }
 
-      // Hash the password
       const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-      // Generate unique employee ID
       const empId = `${email.split("@")[0]}@vanced`;
-
-      // Create and save the new user
       const newUser = await Employee.create({
-        ...req.body, // Spread all properties from req.body
-        password: hashedPassword, // Override with hashed password
-        role: role || "employee", // Ensure default role if blank or undefined
-        employeeId: empId, // Add computed employee ID
+        ...req.body, 
+        password: hashedPassword, 
+        role: role || "employee", 
+        employeeId: empId, 
       });
 
       res.status(201).json({
@@ -63,48 +56,46 @@ router.post("/add-employee",auth, async (req, res) => {
 });
 
 router.put("/update-employee", auth, async (req, res) => {
+  try {
+    const { id, password, profileImage, ...rest } = req.body;
 
-    try {
-      const password = req?.body?.password;
-      const hashedPassword = password
-        ? await bcrypt.hash(password, saltRounds)
-        : "";
-
-      const updatedFields = password
-        ? { ...req.body, password: hashedPassword }
-        : req.body;
-
-      if (req.body.profileImage) {
-        const user = await Employee.findOne({ _id: req.body.id });
-        if (user?.profileImage) {
-          const deletionResult = await DeleteUploadedImage(user.profileImage);
-          if (!deletionResult) {
-            console.error('Failed to delete previous profile image');
-          }
-        }
-      }
-
-      try {
-        const updatedUser = await Employee.findByIdAndUpdate(
-          { _id: req.body.id },
-          { $set: updatedFields },
-          { new: true }
-        );
-
-        if (!updatedUser) {
-          return res.status(404).json({ message: "Employee not found" });
-        }
-
-        res.status(200).json({ message: "Employee detail updated successfully" });
-      } catch (dbError) {
-        console.error('Error updating employee:', dbError);
-        res.status(500).json({ message: "Error updating employee details" });
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      res.status(500).json({ message: "Something went wrong" });
+    if (!id) {
+      return res.status(400).json({ message: "Employee ID is required" });
     }
-  });
+
+    const updatedFields = { ...rest };
+
+    if (password) {
+      updatedFields.password = await bcrypt.hash(password, saltRounds);
+    }
+
+   
+    if (profileImage) {
+      const user = await Employee.findById(id).select("profileImage");
+      if (user?.profileImage) {
+        const deleted = await DeleteUploadedImage(user.profileImage);
+        if (!deleted) console.error("Failed to delete previous profile image");
+      }
+      updatedFields.profileImage = profileImage;
+    }
+
+    
+    const updatedUser = await Employee.findByIdAndUpdate(
+      id,
+      { $set: updatedFields },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    res.status(200).json({ message: "Employee details updated successfully", updatedUser });
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res.status(500).json({ message: "Something went wrong", error: error.message });
+  }
+});
 
 
   router.put("/employee-status/:id", auth, async (req, res) => {
@@ -126,9 +117,24 @@ router.put("/update-employee", auth, async (req, res) => {
   router.get("/list", auth, async (req, res) => {
     try {
       const usersImg = await Image.find({});
-      const users = await Employee.find({}, { password: 0 });
-
-      const employee = users.map(async (val, idx) => {
+    const loggedInUser= await Employee.findById(userId).lean();
+      if (loggedInUser.role !== "admin"){
+      let projection={password:0};
+      projection.bankInformation=0;
+      projection.identityInformation=0;
+      projection.personalInformation=0;
+      projection.birthday=0;
+      projection.education=0;
+      projection.experience=0;
+      projection.appraisalDate=0;
+      projection.emergencyContact=0;
+      projection.acceptPolicies=0;
+      projection.dateOfJoining=0;
+      projection.image=0;
+      }
+    
+      const users = await Employee.find({},projection);
+        const employee = users.map(async (val, idx) => {
         const user_Id = val._id;
         const employeeImg = usersImg.find((elm) => elm.user_Id.equals(user_Id));
         const image = employeeImg
@@ -136,6 +142,7 @@ router.put("/update-employee", auth, async (req, res) => {
           : "";
         return { ...val._doc, image };
       });
+
       const employees = await Promise.all(employee);
       res.json(employees);
     } catch (error) {
@@ -160,6 +167,15 @@ router.put("/update-employee", auth, async (req, res) => {
     if (loggedInUser.role !== "admin") {
       projection.bankInformation = 0;
       projection.address = 0;
+      projection.personalInformation=0;
+      projection.emergencyContact=0;
+      projection.identityInformation=0;
+      projection.acceptPolicies=0;
+      projection.education=0;
+      projection.appraisalDate=0;
+      projection.birthday=0;
+      projection.employeeSalary=0;
+      projection.gender=0;
     }
 
       const users = await Employee.find(

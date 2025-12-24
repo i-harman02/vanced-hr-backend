@@ -146,7 +146,7 @@ router.get("/on-leave", auth, async (req, res) => {
       .populate({
         path: "employee",
         select:
-          "userName designation employeeId firstName lastName email personalInformation.telephones address profileImage",
+          "userName designation employeeId firstName lastName email ",
       })
       .sort({ createdAt: -1 });
 
@@ -192,12 +192,12 @@ router.get("/balance/:id", async (req, res) => {
     }
 
     for (let month = 0; month <= currentMonth; month++) {
-      accumulatedPaidLeave += 1; // Earn 1 paid leave per month
+      accumulatedPaidLeave += 1; 
 
       let totalLeavesThisMonth = monthlyLeaveTaken[month];
-      let extraShortLeaves = Math.max(usedShortLeave[month] - 2, 0); // Short leaves after 2
+      let extraShortLeaves = Math.max(usedShortLeave[month] - 2, 0); 
 
-      let convertedShortLeaves = extraShortLeaves * 0.5; // Each extra short leave counts as 0.5 leave
+      let convertedShortLeaves = extraShortLeaves * 0.5; 
 
       totalLeavesThisMonth += convertedShortLeaves;
 
@@ -215,8 +215,6 @@ router.get("/balance/:id", async (req, res) => {
 
     remainingPaidLeave = accumulatedPaidLeave;
     let remainingLeave = 12 - totalPaidLeave;
-
-    // const shortLeaveDisplay = usedShortLeave[currentMonth]; // Show exact number of short leaves
     const absentLeave = await Leaves.find({
       employee: userId,
       status: "Absent",
@@ -245,7 +243,7 @@ router.get("/balance/:id", async (req, res) => {
       remainingLeave: remainingLeave,
       paidLeave: totalPaidLeave,
       unPaidLeave: totalUnpaidLeave + absentDays,
-      shortLeave: 2 - shortLeaveDisplay.length, // Shows the exact number of short leaves
+      shortLeave: 2 - shortLeaveDisplay.length, 
       remainingPaidLeaveInCurrentMonth: remainingPaidLeave,
       floaterLeave: floaterLeave.length,
     };
@@ -270,6 +268,16 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
     if (loggedInUser.role !== "admin") {
       projection.bankInformation = 0;
       projection.address = 0;
+      projection.personalInformation=0;
+      projection.emergencyContact=0;
+      projection.identityInformation=0;
+      projection.acceptPolicies=0;
+      projection.education=0;
+      projection.appraisalDate=0;
+      projection.employeeSalary=0;
+      projection.birthday=0;
+      projection.dateOfJoining=0;
+      projection.experience=0;
     }
     const userId = req.params.id;
     const page = parseInt(req.query.page) || 1;
@@ -736,7 +744,7 @@ router.put("/status-update", auth, async (req, res) => {
     const updatedLeave = await Leaves.findOneAndUpdate(
       { _id: userId },
       { $set: updatedFields },
-      { new: true, upsert: false } // Upsert set to false for safety
+      { new: true, upsert: false } 
     );
 
     if (!updatedLeave) {
