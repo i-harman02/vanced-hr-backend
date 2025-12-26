@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 dotenv.config();
 
-const sendEmail = async ({to, cc = [], subject, templateName, replacements = {} }) => {
+const sendEmail = async ({to, cc = [], subject, templateName, replacements = {} ,attachments=[]}) => {
   try {
     console.log("Template Name:", templateName);
 
@@ -43,7 +43,13 @@ const sendEmail = async ({to, cc = [], subject, templateName, replacements = {} 
       to,
       cc,
       subject,
-      html: htmlContent
+      html: htmlContent,
+      attachments: attachments.map(file => {
+    return {
+      filename: file.originalname || path.basename(file.path),
+      path: file.path
+    }
+  })
     };
     await transporter.sendMail(mailOptions);
     console.log('Email sent successfully to:', to);

@@ -9,6 +9,8 @@ const calculateShortLeave = require("../../helpers/calculateShortLeaves");
 const sendMail = require("../../../helpers/nodemailer");
 const path = require("path");
 const dayjs = require('dayjs');
+const multer = require("multer");
+const fs = require("fs");
 function formatLeaveType(type) {
   const map = {
     SHORT_LEAVE: "SHORT LEAVE",
@@ -17,9 +19,22 @@ function formatLeaveType(type) {
   };
   return map[type] || type;
 }
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    if (!fs.existsSync("uploads")) {
+      fs.mkdirSync("uploads");
+    }
+    cb(null, "uploads/");
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
 
-router.post("/apply-leave", auth, async (req, res) => {
+const upload = multer({ storage });
+router.post("/apply-leave", auth,   upload.single("attachment"),async (req, res) => {
   try {
+    const attachment = req.file ? req.file.path : null;
     const {
       employee,
       startDate,
@@ -77,13 +92,15 @@ router.post("/apply-leave", auth, async (req, res) => {
       NumberOfDays: noOfDays,
       Reason: reason,
       StartTime:startTime,
-      EndTime:endTime
+      EndTime:endTime,
+      attachment
     
     };
     const templateName = "leaveTemplate.html";
 
     let findManager = await Employee.findOne({ role: "manager" });
-
+console.log("BODY:", req.body);
+console.log("FILE:", req.file);
     let notifyList = Array.isArray(notify) ? notify : [notify];
     if (findManager) notifyList.push(findManager._id);
     const notifyEmployees = await Employee.find({ _id: { $in: notifyList } });
@@ -109,6 +126,7 @@ router.post("/apply-leave", auth, async (req, res) => {
       startTime,
       endTime,
       durations:durationText,
+      attachment
     });
 
     await newLeave.save();
@@ -123,6 +141,9 @@ router.post("/apply-leave", auth, async (req, res) => {
             subject: "Leave Information",
             templateName: "leaveTemplate.html",
             replacements,
+             attachments: attachment
+    ? [{ path: attachment }]
+    : [],
           });
         }
       } catch (error) {

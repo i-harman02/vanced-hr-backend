@@ -39,6 +39,9 @@ const onLeaveTodaySchema = new mongoose.Schema({
       type: String,
     },
   ],
+  attachment:{
+    type:String
+  },
   approvedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Employee",
