@@ -26,20 +26,27 @@ router.post("/add-employee",auth, async (req, res) => {
     try {
       const { email, password, firstName, lastName, role } = req.body;
 
+    
       if (!email || !password || !firstName ) {
         return res.status(400).json({ message: "Required fields are missing" });
       }
 
+     
       const existingEmail = await Employee.findOne({ email });
       if (existingEmail) {
         return res.status(409).json({ message: "Email already exists" });
       }
 
+  
       const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+      
       const empId = `${email.split("@")[0]}@vanced`;
+
+     
       const newUser = await Employee.create({
         ...req.body, 
-        password: hashedPassword, 
+        password: hashedPassword,
         role: role || "employee", 
         employeeId: empId, 
       });
@@ -117,24 +124,9 @@ router.put("/update-employee", auth, async (req, res) => {
   router.get("/list", auth, async (req, res) => {
     try {
       const usersImg = await Image.find({});
-    const loggedInUser= await Employee.findById(userId).lean();
-      if (loggedInUser.role !== "admin"){
-      let projection={password:0};
-      projection.bankInformation=0;
-      projection.identityInformation=0;
-      projection.personalInformation=0;
-      projection.birthday=0;
-      projection.education=0;
-      projection.experience=0;
-      projection.appraisalDate=0;
-      projection.emergencyContact=0;
-      projection.acceptPolicies=0;
-      projection.dateOfJoining=0;
-      projection.image=0;
-      }
-    
-      const users = await Employee.find({},projection);
-        const employee = users.map(async (val, idx) => {
+      const users = await Employee.find({}, { password: 0 });
+
+      const employee = users.map(async (val, idx) => {
         const user_Id = val._id;
         const employeeImg = usersImg.find((elm) => elm.user_Id.equals(user_Id));
         const image = employeeImg
@@ -142,7 +134,6 @@ router.put("/update-employee", auth, async (req, res) => {
           : "";
         return { ...val._doc, image };
       });
-
       const employees = await Promise.all(employee);
       res.json(employees);
     } catch (error) {
@@ -167,15 +158,6 @@ router.put("/update-employee", auth, async (req, res) => {
     if (loggedInUser.role !== "admin") {
       projection.bankInformation = 0;
       projection.address = 0;
-      projection.personalInformation=0;
-      projection.emergencyContact=0;
-      projection.identityInformation=0;
-      projection.acceptPolicies=0;
-      projection.education=0;
-      projection.appraisalDate=0;
-      projection.birthday=0;
-      projection.employeeSalary=0;
-      projection.gender=0;
     }
 
       const users = await Employee.find(
