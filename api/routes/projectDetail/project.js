@@ -9,7 +9,7 @@ router.post("/add-details", auth, async (req, res) => {
     const {
       team,
       client,
-      projectName,
+      projectName,  
       projectDescription,
       startDate,
       endDate,
@@ -41,7 +41,7 @@ router.post("/add-details", auth, async (req, res) => {
   }
 });
 
-router.get("/all-project", auth, async (req, res) => {
+router.get("/all-project",  async (req, res) => {
   try {
     const projects = await Projects.find({})
       .populate({

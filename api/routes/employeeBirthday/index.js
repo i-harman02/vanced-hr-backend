@@ -4,53 +4,49 @@ const Employee = require("../../../models/employee");
 const Image = require("../../../models/image");
 const auth = require('../../helpers/auth')
 
-router.get("/details",auth, async (req, res) => {
+router.get("/details", async (req, res) => {
   try {
     const currentYear = new Date().getFullYear();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const employees = await Employee.aggregate([
-      {
-        $project: {
-          firstName: 1,
-          lastName: 1,
-          birthday: 1,
-          userName: 1,
-          status: 1,
-          profileImage: 1,
-          month: { $month: "$birthday" },
-          day: { $dayOfMonth: "$birthday" },
-        },
-      },
-      {
-        $sort: {
-          month: 1,
-          day: 1,
-        },
-      },
       {
         $match: {
           status: "Active",
+          birthday: { $exists: true, $ne: null },
+        },
+      },
+      {
+        $project: {
+          name: 1,
+          lastName: 1,
+          birthday: 1,
+          email: 1,
+          profileImage: 1,
         },
       },
     ]);
-    const todayBirthDay = [];
-    const upcomingBirthDay = [];
-    var today = new Date();
-    today.setHours(0, 0, 0, 0);
+
+    const todayBirthdays = [];
+    const upcomingBirthDays = [];
+
     employees.forEach((employee) => {
       const birthDate = new Date(employee.birthday);
-      birthDate.setFullYear(currentYear);
-      const nextBirthDate = new Date(employee.birthday);
-      nextBirthDate.setFullYear(currentYear);
+      if (isNaN(birthDate)) return;
 
-      nextBirthDate.setFullYear(nextBirthDate.getFullYear() + 1);
+      birthDate.setFullYear(currentYear);
+
+      const nextBirthDate = new Date(birthDate);
+      nextBirthDate.setFullYear(currentYear + 1);
+
       const date = birthDate >= today ? birthDate : nextBirthDate;
 
       if (
         date.getDate() === today.getDate() &&
-        date.getMonth() === today.getMonth() &&
-        date.getFullYear() === today.getFullYear()
+        date.getMonth() === today.getMonth()
       ) {
-        todayBirthDay.push({
+        todayBirthdays.push({
           ...employee,
           birthday: {
             thisYear: date,
@@ -58,16 +54,15 @@ router.get("/details",auth, async (req, res) => {
           },
         });
       } else {
-        for (let i = 0; i < 7; i++) {
-          const currentDate = new Date(today);
-          currentDate.setDate(today.getDate() + i);
+        for (let i = 1; i <= 7; i++) {
+          const checkDate = new Date(today);
+          checkDate.setDate(today.getDate() + i);
 
-          const isBirthdayForCurrentDate =
-            date.getDate() === currentDate.getDate() &&
-            date.getMonth() === currentDate.getMonth() &&
-            date.getFullYear() === currentDate.getFullYear();
-          if (isBirthdayForCurrentDate) {
-            upcomingBirthDay.push({
+          if (
+            date.getDate() === checkDate.getDate() &&
+            date.getMonth() === checkDate.getMonth()
+          ) {
+            upcomingBirthDays.push({
               ...employee,
               birthday: {
                 thisYear: date,
@@ -78,13 +73,14 @@ router.get("/details",auth, async (req, res) => {
         }
       }
     });
-    const todayBirthdays = await Promise.all(todayBirthDay);
-    const upcomingBirthDays = await Promise.all(upcomingBirthDay);
-    const birthData = { todayBirthdays, upcomingBirthDays };
-    res.status(200).json(birthData);
+
+    res.status(200).json({
+      todayBirthdays,
+      upcomingBirthDays,
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Something went wrong" });
+    console.error("Birthday API Error:", error);
+    res.status(500).json({ message: error.message });
   }
 });
 
