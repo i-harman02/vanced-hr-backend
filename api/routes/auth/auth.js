@@ -8,12 +8,74 @@ const jwt = require("jsonwebtoken");
 const BlackList = require("../../../models/blackList");
 const auth = require("../../helpers/auth");
 
+router.post("/signup", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        message: "All fields are required",
+      });
+    }
+
+    const trimmedEmail = email.trim();
+    const atCount = (trimmedEmail.match(/@/g) || []).length;
+
+    if (atCount !== 1) {
+      return res.status(400).json({ message: "Invalid email format" });
+    }
+
+    const existingUser = await Employee.findOne({
+      email: { $regex: `^${trimmedEmail}$`, $options: "i" },
+    });
+
+    if (existingUser) {
+      return res.status(409).json({
+        message: "User already exists",
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = new Employee({
+      name,
+      email: trimmedEmail,
+      password: hashedPassword,
+      status: "Active",
+    });
+
+    await newUser.save();
+
+    const token = jwt.sign(
+      { id: newUser._id, username: newUser.userName },
+      JWT_SECRET,
+      { expiresIn: "10h" }
+    );
+
+    const { password: _, ...employee } = newUser.toObject();
+
+    res.status(201).json({
+      message: "Signup successfully",
+      data: employee,
+      token,
+    });
+  } catch (error) {
+    console.error("Signup error:", error);
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
+});
+
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
+      return res
+        .status(400)
+        .json({ message: "Email and password are required" });
     }
 
     const trimmedEmail = email.trim();

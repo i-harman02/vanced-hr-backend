@@ -1,13 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const Holiday = require("../../../models/holidayList");
-const Image = require("../../../models/image");
+// const Image = require("../../../models/image");
 const auth = require("../../helpers/auth");
 const removeImage = require("../../helpers/deleteImage/deleteImage");
 
-router.post("/list", auth, async (req, res) => {
+router.post("/list", async (req, res) => {
   try {
-    const { holidayName, year, startDate, endDate, description, image } = req.body;
+    const { holidayName, year, startDate, endDate, description, image } =
+      req.body;
 
     const newHoliday = new Holiday({
       holidayName,
@@ -15,7 +16,7 @@ router.post("/list", auth, async (req, res) => {
       startDate,
       endDate,
       description,
-      image
+      image,
     });
     const holiday = await newHoliday.save();
     res
@@ -25,7 +26,7 @@ router.post("/list", auth, async (req, res) => {
     res.status(500).json({ message: "Something went wrong" });
   }
 });
-router.get("/get-list/:year", auth, async (req, res) => {
+router.get("/get-list/:year", async (req, res) => {
   try {
     const selectedYear = req.params.year;
     const currentYear = selectedYear
@@ -47,7 +48,15 @@ router.get("/get-list/:year", auth, async (req, res) => {
     const holidaysByYear = [];
     holidays.forEach((holiday) => {
       try {
-        const { year, holidayName, startDate, endDate, description, _id,  image } = holiday;
+        const {
+          year,
+          holidayName,
+          startDate,
+          endDate,
+          description,
+          _id,
+          image,
+        } = holiday;
 
         if (currentYear === year) {
           holidaysByYear.push({

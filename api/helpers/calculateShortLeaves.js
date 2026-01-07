@@ -4,7 +4,6 @@ const calculateShortLeave = async (userShortLeaves) => {
     const year = new Date(leave.startDate).getFullYear();
     const key = `${year}-${month}`;
 
-    // Initialize array for the month if not already present
     if (!acc[key]) acc[key] = [];
     acc[key].push(leave);
     return acc;
@@ -15,7 +14,6 @@ const calculateShortLeave = async (userShortLeaves) => {
   for (const month in monthlyShortLeaves) {
     const shortLeaveCount = monthlyShortLeaves[month].length;
 
-    // Calculate equivalent days (3 leaves -> 0.5 days, 6 leaves -> 1 day, etc.)
     const equivalentDays = Math.floor(shortLeaveCount / 3) * 0.5;
     totalShortLeaveDays += equivalentDays;
   }

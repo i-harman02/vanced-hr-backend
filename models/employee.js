@@ -13,11 +13,15 @@ const employeeSchema = new mongoose.Schema({
   assignRole: {
     type: String,
   },
+  name: {
+    type: String,
+    required: true,
+  },
   email: {
     type: String,
-    lowercase:true,
-    unique:true,
-    trim:true,
+    lowercase: true,
+    unique: true,
+    trim: true,
   },
   employeeSalary: {
     type: Number,
@@ -41,10 +45,7 @@ const employeeSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  firstName: {
-    type: String,
-    required: true,
-  },
+
   lastName: {
     type: String,
   },
@@ -120,7 +121,7 @@ const employeeSchema = new mongoose.Schema({
       type: String,
     },
   },
-  identityInformation : {
+  identityInformation: {
     panNo: {
       type: String,
     },
@@ -134,7 +135,7 @@ const employeeSchema = new mongoose.Schema({
       type: String,
     },
   },
-  
+
   education: [
     {
       institution: {
@@ -171,11 +172,11 @@ const employeeSchema = new mongoose.Schema({
     },
   ],
 });
-employeeSchema.index({ email: 1 }); 
+employeeSchema.index({ email: 1 });
 employeeSchema.index({ employeeId: 1 });
-employeeSchema.index({ role: 1 }); 
+employeeSchema.index({ role: 1 });
 employeeSchema.index({ status: 1 });
-employeeSchema.index({ firstName: 1, lastName: 1 }); 
+employeeSchema.index({ firstName: 1, lastName: 1 });
 
 const Employee = mongoose.model("Employee", employeeSchema);
 

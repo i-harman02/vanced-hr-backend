@@ -13,7 +13,7 @@ const leaveBalancesSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  unPaidLeave: {
+  unPaidLeave: {  
     type: Number,
     required: true,
   },
