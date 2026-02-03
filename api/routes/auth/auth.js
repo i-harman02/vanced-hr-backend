@@ -18,7 +18,13 @@ const auth = require("../../helpers/auth");
  */
 router.post("/signup", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { 
+      name, email, password, role, superAdmin, assignRole, designation, 
+      address, gender, employeeId, dateOfJoining, employeeSalary, 
+      birthday, profileImage, status, acceptPolicies, appraisalDate, 
+      personalInformation, emergencyContact, bankInformation, 
+      identityInformation, education, experience 
+    } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
@@ -26,45 +32,67 @@ router.post("/signup", async (req, res) => {
 
     const trimmedEmail = email.trim().toLowerCase();
 
-    // 1️⃣ Check USERS collection
     const existingUser = await User.findOne({ email: trimmedEmail });
     if (existingUser) {
       return res.status(409).json({ message: "User already exists" });
     }
 
-    // 2️⃣ Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 3️⃣ Create USER (AUTH TABLE)
+    // Sanitize Data
+    const sanitizedRole = role ? role.toLowerCase() : "employee";
+    
+    // Helper to clean dates
+    const cleanDate = (date) => (date ? date : undefined);
+
     const user = await User.create({
       name,
       email: trimmedEmail,
       password: hashedPassword,
-      role: "employee",
-      status: "Active",
+      role: sanitizedRole,
+      status: status || "Active",
     });
 
-    // 4️⃣ Create EMPLOYEE (HR TABLE) ✅ MATCHES YOUR SCHEMA
+    // Clean nested arrays
+    const cleanEducation = (education || []).map(edu => ({
+      ...edu,
+      startYear: edu.startYear || undefined,
+      endYear: edu.endYear || undefined
+    }));
+
+    const cleanExperience = (experience || []).map(exp => ({
+      ...exp,
+      startDate: cleanDate(exp.startDate),
+      endDate: cleanDate(exp.endDate)
+    }));
+
     const employee = await Employee.create({
       name,
       email: trimmedEmail,
       password: hashedPassword,
-      role: "employee",
-      status: "Active",
-      acceptPolicies: false,
-
-      personalInformation: {
-        telephones: [],
-      },
-      emergencyContact: {
-        primary: { phone: [] },
-        secondary: { phone: [] },
-      },
-      education: [],
-      experience: [],
+      role: sanitizedRole,
+      superAdmin: superAdmin || false,
+      assignRole,
+      designation,
+      address,
+      gender,
+      employeeId,
+      dateOfJoining: cleanDate(dateOfJoining) || Date.now(),
+      employeeSalary: employeeSalary || undefined,
+      birthday: cleanDate(birthday),
+      profileImage,
+      status: status || "Active",
+      acceptPolicies: acceptPolicies || false,
+      appraisalDate: cleanDate(appraisalDate),
+      
+      personalInformation: personalInformation || { telephones: [] },
+      emergencyContact: emergencyContact || { primary: { phone: [] }, secondary: { phone: [] } },
+      bankInformation: bankInformation || {},
+      identityInformation: identityInformation || {},
+      education: cleanEducation,
+      experience: cleanExperience,
     });
 
-    // 5️⃣ Token (KEEP CONSISTENT)
     const token = jwt.sign(
       { id: user._id },
       JWT_SECRET,
@@ -84,13 +112,6 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-
-
-/**
- * ======================
- * LOGIN (UNCHANGED)
- * ======================
- */
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
