@@ -1,73 +1,96 @@
 const express = require("express");
 const router = express.Router();
 const config = require("../../../config");
+
 const Employee = require("../../../models/employee");
+const User = require("../../../models/users"); // ✅ ADD THIS
+
 const { JWT_SECRET } = config;
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const BlackList = require("../../../models/blackList");
 const auth = require("../../helpers/auth");
 
+/**
+ * ======================
+ * SIGNUP
+ * ======================
+ */
 router.post("/signup", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({
-        message: "All fields are required",
-      });
+      return res.status(400).json({ message: "All fields are required" });
     }
 
-    const trimmedEmail = email.trim();
-    const atCount = (trimmedEmail.match(/@/g) || []).length;
+    const trimmedEmail = email.trim().toLowerCase();
 
-    if (atCount !== 1) {
-      return res.status(400).json({ message: "Invalid email format" });
-    }
-
-    const existingUser = await Employee.findOne({
-      email: { $regex: `^${trimmedEmail}$`, $options: "i" },
-    });
-
+    // 1️⃣ Check USERS collection
+    const existingUser = await User.findOne({ email: trimmedEmail });
     if (existingUser) {
-      return res.status(409).json({
-        message: "User already exists",
-      });
+      return res.status(409).json({ message: "User already exists" });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    // 2️⃣ Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = new Employee({
+    // 3️⃣ Create USER (AUTH TABLE)
+    const user = await User.create({
       name,
       email: trimmedEmail,
       password: hashedPassword,
+      role: "employee",
       status: "Active",
     });
 
-    await newUser.save();
+    // 4️⃣ Create EMPLOYEE (HR TABLE) ✅ MATCHES YOUR SCHEMA
+    const employee = await Employee.create({
+      name,
+      email: trimmedEmail,
+      password: hashedPassword,
+      role: "employee",
+      status: "Active",
+      acceptPolicies: false,
 
+      personalInformation: {
+        telephones: [],
+      },
+      emergencyContact: {
+        primary: { phone: [] },
+        secondary: { phone: [] },
+      },
+      education: [],
+      experience: [],
+    });
+
+    // 5️⃣ Token (KEEP CONSISTENT)
     const token = jwt.sign(
-      { id: newUser._id, username: newUser.userName },
+      { id: user._id },
       JWT_SECRET,
       { expiresIn: "10h" }
     );
 
-    const { password: _, ...employee } = newUser.toObject();
+    const { password: _, ...employeeData } = employee.toObject();
 
     res.status(201).json({
       message: "Signup successfully",
-      data: employee,
+      user: employeeData,
       token,
     });
   } catch (error) {
     console.error("Signup error:", error);
-    res.status(500).json({
-      message: "Something went wrong",
-    });
+    res.status(500).json({ message: "Something went wrong" });
   }
 });
 
+
+
+/**
+ * ======================
+ * LOGIN (UNCHANGED)
+ * ======================
+ */
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -79,11 +102,7 @@ router.post("/login", async (req, res) => {
     }
 
     const trimmedEmail = email.trim();
-    const atCount = (trimmedEmail.match(/@/g) || []).length;
 
-    if (atCount !== 1) {
-      return res.status(404).json({ message: "User not found" });
-    }
     const user = await Employee.findOne({
       email: { $regex: `^${trimmedEmail}$`, $options: "i" },
     });
@@ -96,17 +115,15 @@ router.post("/login", async (req, res) => {
       return res.status(403).json({ message: "User is not active" });
     }
 
-    // ✅ Password match
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ message: "Invalid password" });
     }
 
-    // ✅ Create token
     const token = jwt.sign(
-      { id: user._id, username: user.userName },
+      { id: user._id },
       JWT_SECRET,
-      { expiresIn: "10sec" }
+      { expiresIn: "10h" }
     );
 
     const { password: _, ...employee } = user.toObject();
@@ -118,31 +135,32 @@ router.post("/login", async (req, res) => {
   }
 });
 
+/**
+ * ======================
+ * LOGOUT
+ * ======================
+ */
 router.post("/logout", auth, async (req, res) => {
   try {
     let token = req.header("x-auth-token");
 
     if (!token) {
-      // If x-auth-token header is not present, check for Authorization header
       const authHeader = req.header("Authorization");
       if (authHeader) {
-        // Get the token from the Authorization header
         const parts = authHeader.split(" ");
         if (parts.length === 2 && parts[0] === "Bearer") {
           token = parts[1];
         }
       }
     }
-    const newBlackListedToken = new BlackList({
-      token,
-    });
-    await newBlackListedToken.save();
-    res.status(200).json({
-      message: "You have logout successfully",
-    });
+
+    await BlackList.create({ token });
+
+    res.status(200).json({ message: "You have logout successfully" });
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server error");
   }
 });
+
 module.exports = router;

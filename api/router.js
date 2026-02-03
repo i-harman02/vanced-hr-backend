@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const employee = require("./routes/employee/employee");
+const users = require("./routes/users/users");  
 const auth = require("./routes/auth/auth");
 const image = require("./routes/imageUpload/image");
 const holiday = require("./routes/holidayList");
@@ -162,6 +163,7 @@ const csvUplaod = require("./routes/csvUpload/csvUpload");
  */
 
 router.use("/employee", employee);
+router.use("/users", users);
 router.use("/auth", auth);
 router.use("/image", image);
 router.use("/holiday", holiday);
