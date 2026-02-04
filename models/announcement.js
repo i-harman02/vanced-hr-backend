@@ -19,6 +19,10 @@ const announcementSchema = new mongoose.Schema({
   description: {
     type: String,
   },
+  targetEmployee: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Employee",
+  },
   date: {
     type: Date,
     default: Date.now,

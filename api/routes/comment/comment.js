@@ -15,6 +15,8 @@ router.post("/post",auth, async (req, res) => {
       text,
     });
     await newComment.save();
+    const populatedComment = await Comment.findById(newComment._id).populate("employee");
+    
     const updatedAnnouncement = await Announcement.findByIdAndUpdate(
       id,
       { $push: { comment: newComment._id } },
@@ -23,7 +25,7 @@ router.post("/post",auth, async (req, res) => {
     if (!updatedAnnouncement) {
       return res.status(404).json({ message: "Announcement not found" });
     }
-    res.status(201).json({ message: "Comment added successfully", newComment });
+    res.status(201).json({ message: "Comment added successfully", newComment: populatedComment });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });

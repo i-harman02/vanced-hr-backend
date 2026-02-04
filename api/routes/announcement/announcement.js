@@ -8,19 +8,23 @@ const auth = require('../../helpers/auth')
 
 router.post("/add", auth, async (req, res) => {
   try {
-    const { employee, title, description, image, postType } = req.body;
+    const { employee, title, description, image, postType, targetEmployee } = req.body;
 
     const newAnnouncement = new Announcement({
       employee,
+      title,
       image,
       description,
-      postType
+      postType,
+      targetEmployee
     });
 
     await newAnnouncement.save();
+    const populatedAnnouncement = await Announcement.findById(newAnnouncement._id).populate("employee");
+    
     res.status(201).json({
       message: "Post added successfully",
-      announcement: newAnnouncement,
+      announcement: populatedAnnouncement,
     });
   } catch (error) {
     console.error(error);
@@ -49,7 +53,7 @@ router.get("/list/:postType", auth, async (req, res) => {
         populate: {
           path: "employee",
         },
-        select: "text date",
+        select: "text date employee",
       });
   
     res.status(200).json(announcement);
