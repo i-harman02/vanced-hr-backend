@@ -100,6 +100,48 @@ router.put("/update-employee", auth, async (req, res) => {
   }
 });
 
+router.put("/update/:id", auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { _id, password, profileImage, ...rest } = req.body;
+
+    const updatedFields = { ...rest };
+
+    if (password) {
+      updatedFields.password = await bcrypt.hash(password, saltRounds);
+    }
+
+    if (profileImage) {
+      const user = await Employee.findById(id).select("profileImage");
+      if (user?.profileImage) {
+        const deleted = await DeleteUploadedImage(user.profileImage);
+        if (!deleted) console.error("Failed to delete previous profile image");
+      }
+      updatedFields.profileImage = profileImage;
+    }
+
+    const updatedUser = await Employee.findByIdAndUpdate(
+      id,
+      { $set: updatedFields },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    res.status(200).json({
+      message: "Employee details updated successfully",
+      updatedUser,
+    });
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    res
+      .status(500)
+      .json({ message: "Something went wrong", error: error.message });
+  }
+});
+
 router.put("/employee-status/:id", auth, async (req, res) => {
   try {
     const userId = req.params.id;
