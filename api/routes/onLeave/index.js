@@ -32,66 +32,175 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
-
-
-
 router.post(
   "/apply-leave",
   auth,
   upload.single("attachment"),
   async (req, res) => {
     try {
-      const employeeId = req.user.id; // ✅ FROM TOKEN
-
+      const attachment = req.file ? req.file.path : null;
       const {
+        employee,
         startDate,
         endDate,
         leaveType,
         noOfDays,
         reason,
         notify = [],
+        approvedBy,
+        status,
+        startTime,
+        endTime,
+        durations,
       } = req.body;
+      const startDateObj = new Date(startDate);
+      const endDateObj = new Date(endDate);
 
       const overlappingLeaveRequest = await Leaves.findOne({
-        employee: employeeId,
+        employee,
         status: { $in: ["Approved", "Pending"] },
         startDate: { $lte: endDate },
         endDate: { $gte: startDate },
-      });
+      }).sort({ createdAt: -1 });
 
       if (overlappingLeaveRequest) {
         return res
           .status(400)
           .json({ message: "Leave request overlaps with existing leave" });
       }
+      const employeeDetails = await Employee.findById(employee);
 
-      const newLeave = await Leaves.create({
-        employee: employeeId, // ✅ AUTO MAP
+      if (!employeeDetails) {
+        return res.status(400).json({ message: "Employee not found" });
+      }
+      const readableLeaveType = formatLeaveType(leaveType);
+      let durationText = "";
+
+      if (leaveType === "SHORT_LEAVE") {
+        const formattedStartTime = dayjs(startTime).format("HH:mm");
+        const formattedEndTime = dayjs(endTime).format("HH:mm");
+        durationText = `${formattedStartTime} - ${formattedEndTime}`;
+      } else if (
+        leaveType === "FULL_DAY_LEAVE" ||
+        leaveType === "HALF_DAY_LEAVE"
+      ) {
+        durationText = `${noOfDays} day${noOfDays > 1 ? "s" : ""}`;
+      }
+      const replacements = {
+        EmployeeName: `${employeeDetails.firstName} ${
+          employeeDetails.lastName ?? " "
+        }`,
+        Designation: employeeDetails.role,
+        LeaveType: readableLeaveType,
+        Duration: durationText,
+        StartDate: startDateObj.toLocaleDateString(),
+        EndDate: endDateObj.toLocaleDateString(),
+        NumberOfDays: noOfDays,
+        Reason: reason,
+        StartTime: startTime,
+        EndTime: endTime,
+        attachment,
+      };
+      const templateName = "leaveTemplate.html";
+
+      let findManager = await Employee.findOne({ role: "manager" });
+      console.log("BODY:", req.body);
+      
+      let notifyList = Array.isArray(notify) ? notify : [notify];
+      // Filter out empty strings which cause CastError
+      notifyList = notifyList.filter(id => id && id.trim() !== "");
+      
+      if (findManager) notifyList.push(findManager._id);
+      const notifyEmployees = await Employee.find({ _id: { $in: notifyList } });
+      const teamLeader = notifyEmployees[0]?.email
+        ? [notifyEmployees[0].email]
+        : [];
+      const toEmails = process.env.HR_MAIL;
+      const ccList = [
+        ...notifyEmployees
+          .slice(1)
+          .map((e) => e.email)
+          .filter(Boolean),
+        process.env.CC_MAIL1,
+        process.env.CC_MAIL2,
+        teamLeader,
+      ].filter(Boolean);
+
+      const newLeave = new Leaves({
+        employee,
         startDate,
         endDate,
         leaveType,
         noOfDays,
         reason,
-        notify,
-        status: "Pending",
+        notify: notifyList,
+        approvedBy,
+        status,
+        startTime,
+        endTime,
+        durations: durationText,
+        attachment,
       });
 
-      res.status(201).json({
-        message: "Leave applied successfully",
-        leave: newLeave,
+      await newLeave.save();
+
+      res.status(201).json({ 
+        message: "Leave applied successfully", 
+        leave: newLeave 
+      });
+      setImmediate(async () => {
+        try {
+          if (toEmails.length > 0) {
+            await sendMail({
+              to: toEmails,
+              cc: ccList,
+              subject: "Leave Information",
+              templateName: "leaveTemplate.html",
+              replacements,
+              attachments: attachment ? [{ path: attachment }] : [],
+            });
+          }
+        } catch (error) {
+          console.error("Error sending email:", error);
+        }
       });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Something went wrong" });
+      console.error("APPLY LEAVE ERROR:", error);
+      res.status(500).json({ message: "Something went wrong: " + error.message });
     }
   }
 );
 
-
-
-router.get("/balance/:id", async (req, res) => {
+router.get("/on-leave", auth, async (req, res) => {
   try {
-    const userId = req.params.id;
+    const today = new Date().toISOString().split("T")[0];
+
+    const employeesOnLeaveToday = await Leaves.find({
+      startDate: { $lte: today },
+      endDate: { $gte: today },
+    })
+      .populate({
+        path: "employee",
+        select: "userName designation employeeId firstName lastName email ",
+      })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(employeesOnLeaveToday);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+router.get("/balance/:id", auth, async (req, res) => {
+  try {
+    if (!req.user && res.locals.decode) req.user = res.locals.decode;
+    if (!req.user) return res.status(401).json({ message: "Authentication failed" });
+
+    let userId = req.params.id;
+    if (userId === "me") {
+      userId = req.user.id;
+    }
     const currentMonth = new Date().getMonth();
     const leaveData = await Leaves.find({ employee: userId });
 
@@ -189,7 +298,9 @@ router.get("/balance/:id", async (req, res) => {
 
 router.get("/all-leaves/:id", auth, async (req, res) => {
   try {
-    const decoded = res.locals.decode;
+    if (!req.user && res.locals.decode) req.user = res.locals.decode;
+    if (!req.user) return res.status(401).json({ message: "Authentication failed" });
+    const decoded = req.user;
     const loggedInUser = await Employee.findById(decoded.id).lean();
     if (!loggedInUser) {
       return res.status(404).json({ message: "User not found" });
@@ -211,7 +322,10 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
       projection.dateOfJoining = 0;
       projection.experience = 0;
     }
-    const userId = req.params.id;
+    let userId = req.params.id;
+    if (userId === "me") {
+      userId = req.user.id;
+    }
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
@@ -271,7 +385,11 @@ router.get("/all-leaves/:id", auth, async (req, res) => {
 });
 router.get("/stats/:id", auth, async (req, res) => {
   try {
-    const userId = req.params.id;
+    if (!req.user && res.locals.decode) req.user = res.locals.decode;
+    let userId = req.params.id;
+    if (userId === "me") {
+      userId = req.user.id;
+    }
     const currentYear = new Date().getFullYear();
     const leaveData = await Leaves.find({
       employee: userId,
@@ -360,7 +478,11 @@ router.get("/stats/:id", auth, async (req, res) => {
 });
 router.get("/history/:id", auth, async (req, res) => {
   try {
-    const userId = req.params.id;
+    if (!req.user && res.locals.decode) req.user = res.locals.decode;
+    let userId = req.params.id;
+    if (userId === "me") {
+      userId = req.user.id;
+    }
     const currentYear = new Date().getFullYear();
 
     const leaveData = await Leaves.find({
@@ -370,35 +492,19 @@ router.get("/history/:id", auth, async (req, res) => {
       const leaveYear = new Date(leave.startDate).getFullYear();
       return leaveYear === currentYear;
     });
-    const leaveHistory = filteredLeaveData.flatMap((val) => {
-      const startDate = new Date(val.startDate);
-      const endDate = new Date(val.endDate);
-      const result = [];
-
-      if (startDate.getTime() !== endDate.getTime()) {
-        let currentDate = new Date(startDate);
-        while (currentDate <= endDate) {
-          result.push({
-            leaveDate: new Date(currentDate),
-            leaveType: val.leaveType,
-            reason: val.reason,
-          });
-          currentDate.setDate(currentDate.getDate() + 1);
-        }
-      } else {
-        result.push({
-          leaveDate: new Date(startDate),
-          leaveType: val.leaveType,
-          reason: val.reason,
-        });
-      }
-
-      return result;
-    });
+    const leaveHistory = filteredLeaveData.map((val) => ({
+      _id: val._id,
+      startDate: val.startDate,
+      endDate: val.endDate,
+      leaveType: val.leaveType,
+      reason: val.reason,
+      status: val.status,
+      noOfDays: val.noOfDays
+    }));
     leaveHistory.sort((a, b) => {
-      const dateA = new Date(a.leaveDate);
-      const dateB = new Date(b.leaveDate);
-      return dateA - dateB;
+      const dateA = new Date(a.startDate);
+      const dateB = new Date(b.startDate);
+      return dateB - dateA; // Sort by newest first
     });
 
     res.status(200).json(leaveHistory);
@@ -410,7 +516,9 @@ router.get("/history/:id", auth, async (req, res) => {
 
 router.get("/requested/:id", auth, async (req, res) => {
   try {
-    const decoded = res.locals.decode;
+    if (!req.user && res.locals.decode) req.user = res.locals.decode;
+    if (!req.user) return res.status(401).json({ message: "Authentication failed" });
+    const decoded = req.user;
     const loggedInUser = await Employee.findById(decoded.id).lean();
     if (!loggedInUser) {
       return res.status(404).json({ message: "User not found" });
@@ -538,7 +646,9 @@ router.get("/requested/:id", auth, async (req, res) => {
 });
 router.get("/all-requested-leaves", auth, async (req, res) => {
   try {
-    const decoded = res.locals.decode;
+    if (!req.user && res.locals.decode) req.user = res.locals.decode;
+    if (!req.user) return res.status(401).json({ message: "Authentication failed" });
+    const decoded = req.user;
     const loggedInUser = await Employee.findById(decoded.id).lean();
     if (!loggedInUser) {
       return res.status(404).json({ message: "User not found" });
