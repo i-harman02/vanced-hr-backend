@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 const projectSchema = new mongoose.Schema({
   team: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Teams",
+    type: String, // Stores designation name directly
+    require: true,
   },
   client: {
     id: {

@@ -60,6 +60,14 @@ const employeeSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  tl: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Employee",
+  },
+  manager: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Employee",
+  },
   appraisalDate: {
     type: Date,
   },

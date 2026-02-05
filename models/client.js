@@ -1,53 +1,30 @@
 const mongoose = require("mongoose");
 
 const clientSchema = new mongoose.Schema({
-  userName: {
+  clientName: {
     type: String,
     required: true,
-    unique: true,
-  },
-  image: {
-    type: String,
-  },
-  firstName: {
-    type: String,
-    required: true,
-  },
-  lastName: {
-    type: String,
   },
   mail: {
     type: String,
     required: true,
-  },
-  organization: {
-    type: String,
-    required: true,
-  },
-  status: {
-    type: String,
-    required: true,
-  },
-  address: {
-    type: String,
-    required: true,
-  },
-  aboutUs: {
-    type: String,
-    required: true,
-  },
-  company: {
-    type: String,
-    required: true,
-  },
-  socialMedia: {
-    type: String,
-    required: true,
+    unique: true,
   },
   contactNumber: {
     type: String,
     required: true,
   },
+  nationality: {
+    type: String,
+    default: "",
+  },
+  clientStatus: {
+    type: String,
+    enum: ["Active", "Inactive", "Pending"],
+    default: "Active",
+  },
+}, {
+  timestamps: true,
 });
 
 const Clients = mongoose.model("Clients", clientSchema);

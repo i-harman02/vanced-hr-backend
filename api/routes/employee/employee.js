@@ -103,7 +103,7 @@ router.put("/update-employee", auth, async (req, res) => {
 router.put("/update/:id", auth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { _id, password, profileImage, ...rest } = req.body;
+    const { _id, __v, password, profileImage, ...rest } = req.body;
 
     const updatedFields = { ...rest };
 
@@ -120,10 +120,14 @@ router.put("/update/:id", auth, async (req, res) => {
       updatedFields.profileImage = profileImage;
     }
 
+    // Ensure we don't pass empty strings for ObjectIds
+    if (updatedFields.tl === "") updatedFields.tl = null;
+    if (updatedFields.manager === "") updatedFields.manager = null;
+
     const updatedUser = await Employee.findByIdAndUpdate(
       id,
       { $set: updatedFields },
-      { new: true }
+      { new: true, runValidators: true }
     );
 
     if (!updatedUser) {
@@ -135,10 +139,11 @@ router.put("/update/:id", auth, async (req, res) => {
       updatedUser,
     });
   } catch (error) {
-    console.error("Unexpected error:", error);
-    res
-      .status(500)
-      .json({ message: "Something went wrong", error: error.message });
+    console.error("Employee Update Error:", error);
+    res.status(500).json({ 
+      message: "Something went wrong during update", 
+      error: error.message 
+    });
   }
 });
 
@@ -161,7 +166,9 @@ router.put("/employee-status/:id", auth, async (req, res) => {
 router.get("/list", async (req, res) => {
   try {
     const usersImg = await Image.find({});
-    const users = await Employee.find({}, { password: 0 });
+    const users = await Employee.find({}, { password: 0 })
+      .populate("tl", "name profileImage")
+      .populate("manager", "name profileImage");
 
     const employee = users.map(async (val, idx) => {
       const user_Id = val._id;

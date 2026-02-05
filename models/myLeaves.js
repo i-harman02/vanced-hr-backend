@@ -34,7 +34,7 @@ const leaveSchema = new mongoose.Schema(
     },
 
     attachment: {
-      type: String, // file URL or path
+      type: String, 
     },
 
     notify: [

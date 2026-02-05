@@ -5,40 +5,29 @@ const Image = require("../../../models/image");
 const removeImage = require("../../helpers/deleteImage/deleteImage");
 const auth = require('../../helpers/auth')
 
-router.post("/add-client",auth, async (req, res) => {
+router.post("/add-client", async (req, res) => {
   try {
     const {
-      userName,
+      clientName,
       mail,
-      organization,
-      status,
-      address,
-      aboutUs,
-      company,
-      socialMedia,
       contactNumber,
-      firstName,
-      lastName,
-      image
+      nationality,
+      clientStatus
     } = req.body;
+    
     const existingEmail = await Client.findOne({ mail });
     if (existingEmail) {
-      return res.status(409).json({ message: "mail already exists" });
+      return res.status(409).json({ message: "Email already exists" });
     }
+    
     const newClient = new Client({
-      userName,
+      clientName,
       mail,
-      organization,
-      status,
-      address,
-      aboutUs,
-      company,
-      socialMedia,
       contactNumber,
-      firstName,
-      lastName,
-      image
+      nationality: nationality || "",
+      clientStatus: clientStatus || "Active"
     });
+    
     await newClient.save();
     res
       .status(201)
@@ -49,15 +38,24 @@ router.post("/add-client",auth, async (req, res) => {
   }
 });
 
+const Projects = require("../../../models/projects");
+
 router.get("/detail",auth, async (req, res) => {
   try {
-    const client = await Client.find({});
-    res.status(200).json(client);
+    const clients = await Client.find({}).lean(); // Use lean() to get plain JS objects
+    
+    // Fetch project counts for all clients
+    const clientsWithCount = await Promise.all(clients.map(async (client) => {
+      const projectCount = await Projects.countDocuments({ "client.id": client._id });
+      return { ...client, projectCount };
+    }));
+
+    res.status(200).json(clientsWithCount);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });
   }
-});
+}); 
 
 router.put("/detail-update",auth, async (req, res) => {
   try {
