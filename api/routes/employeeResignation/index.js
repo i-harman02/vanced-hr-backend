@@ -2,11 +2,12 @@ const express = require("express");
 const router = express.Router();
 const Resignation = require("../../../models/resignation");
 const Image = require("../../../models/image");
+const Employee = require("../../../models/employee");
 const auth = require('../../helpers/auth')
 
 router.post("/add-resignation",auth, async (req, res) => {
   try {
-    const { resignationEmployee, reason, resignedDate } = req.body;
+    const { resignationEmployee, reason, resignedDate, noticePeriod } = req.body;
   
     // Validate input
     if (!resignationEmployee || !reason || !resignedDate) {
@@ -35,6 +36,7 @@ router.post("/add-resignation",auth, async (req, res) => {
       image: profileId, // May be null if no profile is found
       reason,
       resignedDate,
+      noticePeriod: noticePeriod || 45,
     });
   
     // Save the resignation
@@ -55,11 +57,31 @@ router.post("/add-resignation",auth, async (req, res) => {
   
 });
 
-router.get("/resignation-details",auth, async (req, res) => {
+router.get("/resignation-details", auth, async (req, res) => {
   try {
-    const resignationDetails = await Resignation.find({})
+    if (!req.user && res.locals.decode) req.user = res.locals.decode;
+    const loggedInUser = await Employee.findById(req.user.id).lean();
+    if (!loggedInUser) return res.status(404).json({ message: "User not found" });
+
+    const isPrivileged = loggedInUser.role === "admin" || 
+                         loggedInUser.role === "superadmin" || 
+                         loggedInUser.assignRole === "HR" || 
+                         loggedInUser.assignRole === "HR Manager" ||
+                         loggedInUser.assignRole === "Manager";
+
+    let query = {};
+    if (!isPrivileged) {
+      // Regular employees and TLs (unless TL is considered privileged, but user specifically said Manager) 
+      // see only their own or their team's. 
+      // For now, let's stick to 'Managers and above see all'.
+      // If not privileged, filter by employee ID
+      query.resignationEmployee = loggedInUser._id;
+    }
+
+    const resignationDetails = await Resignation.find(query)
       .populate({
         path: "resignationEmployee",
+        select: "name lastName designation profileImage employeeId"
       });
     res.status(200).json(resignationDetails);
   } catch (error) {
@@ -75,7 +97,8 @@ router.get("/resignation-details/:id",auth, async (req, res) => {
       resignationEmployee: userId,
     })
       .populate({
-        path: "resignationEmployee"
+        path: "resignationEmployee",
+        select: "name lastName designation profileImage employeeId"
       });
     res.status(200).json(resignationDetails);
   } catch (error) {
@@ -99,12 +122,17 @@ router.put("/update-details",auth, async (req, res) => {
   }
 });
 
-router.put("/resignation-status-update",auth, async (req, res) => {
+router.put("/resignation-status-update", auth, async (req, res) => {
   try {
-    const status = req.body.status;
+    const { status, id } = req.body;
     const updatedFields = { status };
+    
+    if (status === "Approved") {
+      updatedFields.approvedDate = new Date();
+    }
+    
     await Resignation.findByIdAndUpdate(
-      { _id: req.body.id },
+      { _id: id },
       { $set: updatedFields },
       { new: true, upsert: true }
     );

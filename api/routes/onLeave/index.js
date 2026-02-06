@@ -173,15 +173,21 @@ router.post(
 
 router.get("/on-leave", auth, async (req, res) => {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
 
-    const employeesOnLeaveToday = await Leaves.find({
-      startDate: { $lte: today },
-      endDate: { $gte: today },
-    })
+    const query = {
+      status: "Approved",
+      startDate: { $lte: endOfToday },
+      endDate: { $gte: startOfToday },
+    };
+
+    const employeesOnLeaveToday = await Leaves.find(query)
       .populate({
         path: "employee",
-        select: "userName designation employeeId firstName lastName email ",
+        select: "userName designation employeeId name lastName email profileImage",
       })
       .sort({ createdAt: -1 });
 
@@ -533,9 +539,20 @@ router.get("/requested/:id", auth, async (req, res) => {
     const leaveTypeFilter = req.query.leaveType;
     const statusFilter = req.query.status;
 
+    const isPrivileged = loggedInUser.role === "admin" || 
+                         loggedInUser.role === "superadmin" || 
+                         loggedInUser.assignRole === "HR" || 
+                         loggedInUser.assignRole === "HR Manager" ||
+                         loggedInUser.assignRole === "Manager";
+
     let baseQuery = {};
-    if (loggedInUser.role !== "admin") {
-      baseQuery.notify = userId;
+    if (!isPrivileged) {
+      // TLs and Managers only see their team's requests
+      const teamEmployees = await Employee.find({
+        $or: [{ tl: loggedInUser._id }, { manager: loggedInUser._id }]
+      }).select("_id");
+      const teamIds = teamEmployees.map(emp => emp._id);
+      baseQuery.employee = { $in: teamIds };
     }
     if (leaveTypeFilter && leaveTypeFilter.toUpperCase() !== "ALL") {
       baseQuery.leaveType = leaveTypeFilter;
@@ -620,12 +637,12 @@ router.get("/requested/:id", auth, async (req, res) => {
       .populate({
         path: "employee",
         select:
-          "userName designation employeeId firstName lastName profileImage",
+          "userName designation employeeId name lastName profileImage",
       })
       .populate({
         path: "approvedBy",
         select:
-          "userName designation employeeId firstName lastName profileImage",
+          "userName designation employeeId name lastName profileImage",
       });
 
     res.status(200).json({
@@ -742,12 +759,12 @@ router.get("/all-requested-leaves", auth, async (req, res) => {
       .populate({
         path: "employee",
         select:
-          "userName designation employeeId firstName lastName profileImage",
+          "userName designation employeeId name lastName profileImage",
       })
       .populate({
         path: "approvedBy",
         select:
-          "userName designation employeeId firstName lastName profileImage",
+          "userName designation employeeId name lastName profileImage",
       });
     res.status(200).json({
       leaveData,

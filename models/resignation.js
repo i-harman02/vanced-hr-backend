@@ -21,6 +21,13 @@ const resignationSchema = new mongoose.Schema({
     type: String,
     default: "Pending",
   },
+  approvedDate: {
+    type: Date,
+  },
+  noticePeriod: {
+    type: Number,
+    default: 45,
+  },
 });
 
 const Resignation = mongoose.model("Resignation", resignationSchema);

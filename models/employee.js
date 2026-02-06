@@ -68,9 +68,6 @@ const employeeSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Employee",
   },
-  appraisalDate: {
-    type: Date,
-  },
   personalInformation: {
     telephones: [
       {

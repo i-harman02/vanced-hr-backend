@@ -21,6 +21,7 @@ const birthday = require("./routes/employeeBirthday");
 const appraisalDate = require("./routes/employeeAppraisal");
 const workAnniversary = require("./routes/workAnniversary");
 const policy = require("./routes/policy/index");
+const shift = require("./routes/shift/index");
     
 const csvUplaod = require("./routes/csvUpload/csvUpload");
 /**
@@ -182,6 +183,7 @@ router.use("/birthday", birthday);
 router.use("/appraisalDate", appraisalDate);
 router.use("/workAnniversary", workAnniversary);
 router.use("/policy", policy);
+router.use("/shift", shift);
 router.use("/csvUplaod", csvUplaod);
 
 module.exports = router;
