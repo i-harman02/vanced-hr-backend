@@ -9,7 +9,7 @@ const auth = async (req, res, next) => {
   if (!token) {
     const authHeader = req.header("Authorization");
     if (authHeader) {
-      const parts = authHeader.split(" ");          
+      const parts = authHeader.split(" ");
       if (parts.length === 2 && parts[0] === "Bearer") {
         token = parts[1];
       }
@@ -30,8 +30,13 @@ const auth = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    // 🔥 IMPORTANT CHANGE
-    req.user = decoded; // { userId, role }
+    // ✅ NORMALIZED USER OBJECT
+    req.user = {
+      id: decoded.userId,
+      role: decoded.role,
+      email: decoded.email,
+      name: decoded.name
+    };
 
     next();
   } catch (err) {
