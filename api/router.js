@@ -22,7 +22,7 @@ const appraisalDate = require("./routes/employeeAppraisal");
 const workAnniversary = require("./routes/workAnniversary");
 const policy = require("./routes/policy/index");
 const shift = require("./routes/shift/index");
-    
+const message = require("./routes/message/message");
 const csvUplaod = require("./routes/csvUpload/csvUpload");
 /**
  * @openapi
@@ -186,4 +186,7 @@ router.use("/policy", policy);
 router.use("/shift", shift);
 router.use("/csvUplaod", csvUplaod);
 
-module.exports = router;
+module.exports = (io) => {
+  router.use("/message", message(io));
+  return router;
+};

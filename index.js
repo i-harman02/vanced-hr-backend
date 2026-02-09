@@ -16,10 +16,10 @@ app.use(express.json());
 
 require("./db/connection");
 
-// ✅ Create HTTP server
+
 const server = http.createServer(app);
 
-// ✅ Attach Socket.IO
+
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -27,13 +27,25 @@ const io = new Server(server, {
   }
 });
 
-// ✅ Socket logic
+
 io.on("connection", (socket) => {
-  const userId = socket.handshake.auth?.userId;
+  const { userId, designation, tlId } = socket.handshake.auth || {};
 
   if (userId) {
     socket.join(userId);
-    console.log("Socket joined room:", userId);
+    socket.join("GROUP_ALL");
+    
+    if (designation) {
+      socket.join(designation);
+      console.log(`Socket ${userId} joined designation room: ${designation}`);
+    }
+
+    // Join Team Room (TL + Subordinates)
+    const teamRoom = tlId ? `TEAM_${tlId}` : `TEAM_${userId}`;
+    socket.join(teamRoom);
+    console.log(`Socket ${userId} joined team room: ${teamRoom}`);
+    
+    console.log("Socket joined rooms for user:", userId);
   }
 
   socket.on("disconnect", () => {
@@ -41,20 +53,18 @@ io.on("connection", (socket) => {
   });
 });
 
-// ✅ Make io available in routes if needed elsewhere
 app.set("io", io);
 
-// Test route
+
 app.get("/api/testing", (req, res) => {
   res.send("Working 0.5");
 });
 
-// ✅ PASS io INTO ROUTES  ← THIS IS THE KEY FIX
 app.use("/api", routes(io));
 
 app.use("/uploads", express.static("./uploads"));
 
-// ✅ Correct server start
+
 server.listen(PORT, () => {
   console.log("Server running on port " + PORT);
   swaggerDocs(app, PORT);

@@ -94,9 +94,15 @@ router.post("/signup", async (req, res) => {
     });
 
     const token = jwt.sign(
-      { id: user._id },
+      { 
+        id: employee._id, 
+        name: employee.name, 
+        email: employee.email,
+        designation: employee.designation,
+        tl: employee.tl 
+      },
       JWT_SECRET,
-      { expiresIn: "10h" }
+      { expiresIn: "24h" }
     );
 
     const { password: _, ...employeeData } = employee.toObject();
@@ -142,9 +148,15 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id },
+      { 
+        id: user._id, 
+        name: user.name, 
+        email: user.email,
+        designation: user.designation,
+        tl: user.tl 
+      },
       JWT_SECRET,
-      { expiresIn: "10h" }
+      { expiresIn: "24h" }
     );
 
     const { password: _, ...employee } = user.toObject();

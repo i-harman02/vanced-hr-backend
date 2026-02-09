@@ -32,7 +32,7 @@ const auth = async (req, res, next) => {
 
     // ✅ NORMALIZED USER OBJECT
     req.user = {
-      id: decoded.userId,
+      id: decoded.id,
       role: decoded.role,
       email: decoded.email,
       name: decoded.name
