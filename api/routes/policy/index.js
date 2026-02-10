@@ -16,7 +16,7 @@ router.post("/", auth, async (req, res) => {
 
     await newPolicy.save();
 
-    await EmployeeModel.updateMany({ acceptPolicies: false })
+    await EmployeeModel.updateMany({}, { acceptPolicies: false });
 
     res
       .status(201)
@@ -55,7 +55,7 @@ router.put("/:id", auth, async (req, res) => {
     if (!updatedPolicy) {
       return res.status(404).json({ message: "Policy not found" });
     }
-    await EmployeeModel.updateMany({ acceptPolicies: false })
+    await EmployeeModel.updateMany({}, { acceptPolicies: false });
     res
       .status(200)
       .json({ message: "Policy updated successfully", policy: updatedPolicy });

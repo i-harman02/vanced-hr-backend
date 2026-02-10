@@ -19,8 +19,8 @@ const auth = require("../../helpers/auth");
 router.post("/signup", async (req, res) => {
   try {
     const { 
-      name, email, password, role, superAdmin, assignRole, designation, 
-      address, gender, employeeId, dateOfJoining, employeeSalary, 
+      name, lastName, email, password, role, superAdmin, assignRole, designation, 
+      tl, manager, address, gender, employeeId, dateOfJoining, employeeSalary, 
       birthday, profileImage, status, acceptPolicies, appraisalDate, 
       personalInformation, emergencyContact, bankInformation, 
       identityInformation, education, experience 
@@ -47,6 +47,7 @@ router.post("/signup", async (req, res) => {
 
     const user = await User.create({
       name,
+      lastName,
       email: trimmedEmail,
       password: hashedPassword,
       role: sanitizedRole,
@@ -68,12 +69,15 @@ router.post("/signup", async (req, res) => {
 
     const employee = await Employee.create({
       name,
+      lastName,
       email: trimmedEmail,
       password: hashedPassword,
       role: sanitizedRole,
       superAdmin: superAdmin || false,
       assignRole,
       designation,
+      tl: tl === "" ? null : tl,
+      manager: manager === "" ? null : manager,
       address,
       gender,
       employeeId,
@@ -106,6 +110,18 @@ router.post("/signup", async (req, res) => {
     );
 
     const { password: _, ...employeeData } = employee.toObject();
+
+    const io = req.app.get("io");
+    if (io) {
+      if (employee.tl) {
+        io.to(`TEAM_${employee.tl}`).emit("newEmployee", { employee: employeeData });
+      } else if (employee._id) {
+        // If they are a TL themselves (though unlikely on signup), they might have a room
+        io.to(`TEAM_${employee._id}`).emit("newEmployee", { employee: employeeData });
+      }
+      
+      if (employee.manager) io.to(String(employee.manager)).emit("newEmployee", { employee: employeeData });
+    }
 
     res.status(201).json({
       message: "Signup successfully",

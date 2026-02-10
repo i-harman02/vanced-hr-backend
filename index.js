@@ -48,6 +48,13 @@ io.on("connection", (socket) => {
     console.log("Socket joined rooms for user:", userId);
   }
 
+  socket.on("joinRoom", (room) => {
+    if (room) {
+      socket.join(room);
+      console.log(`Socket ${userId} joined custom room: ${room}`);
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("Socket disconnected:", socket.id);
   });
