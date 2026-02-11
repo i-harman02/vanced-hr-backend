@@ -24,6 +24,8 @@ const policy = require("./routes/policy/index");
 const shift = require("./routes/shift/index");
 const message = require("./routes/message/message");
 const csvUplaod = require("./routes/csvUpload/csvUpload");
+const designation = require("./routes/designation");
+const role = require("./routes/role");
 /**
  * @openapi
  * /api/employee/add-employee:
@@ -185,6 +187,8 @@ router.use("/workAnniversary", workAnniversary);
 router.use("/policy", policy);
 router.use("/shift", shift);
 router.use("/csvUplaod", csvUplaod);
+router.use("/designation", designation);
+router.use("/role", role);
 
 module.exports = (io) => {
   router.use("/message", message(io));

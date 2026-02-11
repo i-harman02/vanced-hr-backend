@@ -6,12 +6,14 @@ const auth = require('../../helpers/auth')
 
 router.post("/add-performance",auth, async (req, res) => {
   try {
-    const { employee, addedBy, projectName, comments, date } = req.body;
+    const { employee, addedBy, projectName, comments, competency, rating, date } = req.body;
     const newComment = new Performance({
       employee,
       addedBy,
       projectName,
       comments,
+      competency,
+      rating,
       date,
     });
   
@@ -32,11 +34,11 @@ router.get("/all-performance",auth, async (req, res) => {
     const feedback = await Performance.find({})
       .populate({
         path: "employee",
-        select: "userName designation employeeId firstName lastName profileImage",
+        select: "userName designation employeeId name lastName profileImage",
       })
       .populate({
         path: "addedBy",
-        select: "userName designation employeeId firstName lastName profileImage",
+        select: "userName designation employeeId name lastName profileImage",
       })
       .populate({
         path: "projectName",
@@ -55,11 +57,11 @@ router.get("/employee-performance/:id",auth, async (req, res) => {
     const feedback = await Performance.find({ employee: id })
       .populate({
         path: "employee",
-        select: "userName designation employeeId firstName lastName profileImage",
+        select: "userName designation employeeId name lastName profileImage",
       })
       .populate({
         path: "addedBy",
-        select: "userName designation employeeId firstName lastName profileImage",
+        select: "userName designation employeeId name lastName profileImage",
       })
       .populate({
         path: "projectName",
@@ -74,11 +76,11 @@ router.get("/employee-performance/:id",auth, async (req, res) => {
 
 router.put("/update-performance",auth, async (req, res) => {
   try {
-    const updatedFields = req.body;
+    const { id, ...updatedFields } = req.body;
     await Performance.findByIdAndUpdate(
-      { _id: req.body.id },
+      id,
       { $set: updatedFields },
-      { new: true, upsert: true }
+      { new: true }
     );
     res.status(200).send({message: "Performance detail updated successfully!"});
   } catch (error) {
